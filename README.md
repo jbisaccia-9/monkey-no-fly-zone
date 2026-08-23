@@ -1,10 +1,10 @@
-# Monkey No-Fly Zone
+# Monkey See, Monkey Pew
 
 A modern browser 3D survival game starring a mechanically winged monkey flying through hostile military airspace. The game uses Three.js for a cinematic chase camera, streamed procedural cities, formation-based fighter encounters, homing missiles, player weapons, pooled visual effects, and responsive desktop and touch controls.
 
 ## Play
 
-**[Play Monkey No-Fly Zone in your browser](https://jbisaccia-9.github.io/monkey-no-fly-zone/)**
+**[Play Monkey See, Monkey Pew in your browser](https://jbisaccia-9.github.io/monkey-no-fly-zone/)**
 
 Open `monkey-no-fly-zone-standalone.html` directly, or serve this directory:
 
@@ -25,6 +25,7 @@ Then visit `http://localhost:8080`.
 
 ## Current 3D Edition
 
+- Cinematic Commander Vesper briefing that launches Operation: Banana Sky
 - Realistic rear chase-view monkey flying head-first into the scene
 - Physical bank, pitch, yaw, wing, scarf, tail, and thruster animation
 - Four streamed city themes with textured facades, roads, bridges, rooftops, and skyline transitions
@@ -55,7 +56,7 @@ npm run build
 npm test
 ```
 
-The build produces `game.js`, embeds every referenced image into `monkey-no-fly-zone-standalone.html`, and verifies 29 required DOM hooks plus bundle integrity. The current release bundles seven modules into 621.1 KB, passes six automated tests across the source and standalone release, and ships as a self-contained 4.83 MB HTML game.
+The build produces `game.js`, embeds every referenced image into `monkey-no-fly-zone-standalone.html`, and verifies 29 required DOM hooks plus bundle integrity. The current release bundles seven modules into 621.1 KB, passes seven automated tests across the source and standalone release, and ships as a self-contained 6.73 MB HTML game.
 
 ## Project Layout
 
@@ -66,6 +67,7 @@ The build produces `game.js`, embeds every referenced image into `monkey-no-fly-
 - `game/vfx.js`: pooled trails, smoke, explosions, weather, and camera impulses
 - `audio.js`: procedural spatial Web Audio
 - `index.html`, `styles.css`: HUD, overlays, accessibility, and mobile controls
+- `assets/commander-vesper-v1.png`: original Commander Vesper mission-briefing artwork
 - `assets/`: generated hero, aircraft, and skyline art
 - `game.js`: generated browser bundle
 - `monkey-no-fly-zone-standalone.html`: self-contained shareable release

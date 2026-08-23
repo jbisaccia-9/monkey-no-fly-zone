@@ -4,17 +4,18 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#071014">
-    <title>Monkey No-Fly Zone 3D</title>
-    <link rel="stylesheet" href="./styles.css?v=9">
+    <title>Monkey See, Monkey Pew</title>
+    <meta name="description" content="A flying monkey. A stolen terror fleet. Humanity's last wildly unqualified hope.">
+    <link rel="stylesheet" href="./styles.css?v=10">
   </head>
   <body>
-    <main class="shell" aria-label="Monkey No-Fly Zone game">
+    <main class="shell" aria-label="Monkey See, Monkey Pew game">
       <canvas id="game" width="960" height="540" aria-label="3D survival flight game. Guide the monkey through hostile airspace, dodge aircraft and missiles, and return fire."></canvas>
 
       <section class="hud" aria-label="Flight status">
         <div class="hud__identity">
           <span class="hud__eyebrow">3D SURVIVAL FLIGHT</span>
-          <span class="hud__title">Monkey No-Fly Zone</span>
+          <span class="hud__title">Monkey See, Monkey Pew</span>
         </div>
         <div class="hud__center">
           <span class="hud__level" id="level">LEVEL 1 · PATROL</span>
@@ -50,7 +51,7 @@
             id="shootButton"
             type="button"
             aria-label="Fire banana pulse"
-            title="Fire banana pulse (X or F)"
+            title="Fire banana pulse (Enter)"
             disabled
           >
             <span class="fire-button__reticle" aria-hidden="true"></span>
@@ -105,12 +106,23 @@
         </button>
       </section>
 
-      <section class="overlay is-visible" id="overlay" aria-live="polite">
-        <div class="overlay__panel">
-          <span class="overlay__kicker">OPERATION: BANANA SKY</span>
-          <h1 id="overlayTitle">Survive the no-fly zone.</h1>
-          <p id="overlayText">Break the formation. Dodge the lock. Own the sky.</p>
-          <button id="startButton" type="button">Begin Flight</button>
+      <section class="overlay is-visible" id="overlay" data-mode="briefing" aria-live="polite">
+        <div class="overlay__panel mission-panel">
+          <figure class="briefing-visual" id="briefingVisual" aria-label="Commander Vesper mission transmission">
+            <span class="briefing-visual__signal" aria-hidden="true">INCOMING // SECURE CHANNEL</span>
+            <img src="./assets/commander-vesper-v1.png" alt="Commander Vesper, a strange moth-like creature wearing a flight command headset">
+            <figcaption>
+              <strong>Commander Vesper</strong>
+              <span>Species: Unknown</span>
+            </figcaption>
+          </figure>
+          <div class="briefing-copy">
+            <span class="overlay__kicker">OPERATION: BANANA SKY</span>
+            <h1 id="overlayTitle">Humanity has one pilot left.</h1>
+            <p id="overlayText">Wingtail, listen carefully. A rogue terror fleet has seized the world's deadliest strike aircraft. Our defenses are gone. Cities are going dark.</p>
+            <p class="briefing-order" id="briefingOrder">Your wings can slip their radar. Your banana missiles can break their formation. You are the only one who can save this planet.</p>
+            <button id="startButton" type="button">Accept Mission</button>
+          </div>
         </div>
       </section>
 
@@ -139,6 +151,6 @@
     </main>
 
     <script src="./audio.js?v=3"></script>
-    <script src="./game.js?v=16"></script>
+    <script src="./game.js?v=17"></script>
   </body>
 </html>

@@ -11,6 +11,7 @@ import * as GameVFX from "./game/vfx.js";
   const overlay = document.getElementById("overlay");
   const overlayTitle = document.getElementById("overlayTitle");
   const overlayText = document.getElementById("overlayText");
+  const briefingOrder = document.getElementById("briefingOrder");
   const startButton = document.getElementById("startButton");
   const pauseOverlay = document.getElementById("pauseOverlay");
   const resumeButton = document.getElementById("resumeButton");
@@ -326,9 +327,8 @@ import * as GameVFX from "./game/vfx.js";
 
       resize();
       state = "ready";
-      overlayText.textContent = "Thread the city canyon, break missile locks, and clear the hostile formation.";
       startButton.disabled = false;
-      startButton.textContent = "Begin 3D Flight";
+      startButton.textContent = "Accept Mission";
       announce("3D flight systems ready.");
     } catch (error) {
       console.error(error);
@@ -395,6 +395,7 @@ import * as GameVFX from "./game/vfx.js";
     if (state === "loading" || state === "unsupported") return;
     reset();
     state = "playing";
+    overlay.dataset.mode = "flight";
     setOverlayVisible(false);
     shootButton.disabled = false;
     pauseButton.disabled = false;
@@ -954,8 +955,10 @@ import * as GameVFX from "./game/vfx.js";
     }
     window.setTimeout(() => {
       state = "gameover";
+      overlay.dataset.mode = "result";
       overlayTitle.textContent = "Flight terminated.";
       overlayText.textContent = `${reason}. You survived ${finalDistance} km and scored ${points.toLocaleString()} skill points.`;
+      if (briefingOrder) briefingOrder.hidden = true;
       startButton.textContent = "Fly Again";
       setOverlayVisible(true);
       announce(`Flight terminated by ${reason}.`);
