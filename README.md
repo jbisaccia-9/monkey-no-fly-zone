@@ -4,7 +4,7 @@ A modern browser 3D survival game starring a mechanically winged monkey flying t
 
 ## Play
 
-**[Play Monkey No-Fly Zone in your browser](https://monkey-no-fly-zone.josephbisaccia766.chatgpt.site/)**
+**[Play Monkey No-Fly Zone in your browser](https://jbisaccia-9.github.io/monkey-no-fly-zone/)**
 
 Open `monkey-no-fly-zone-standalone.html` directly, or serve this directory:
 
