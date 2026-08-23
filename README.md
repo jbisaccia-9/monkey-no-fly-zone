@@ -30,6 +30,7 @@ Then visit `http://localhost:8080`.
 - Interactive 56-second real-time Three.js prologue with preloaded voices and protected dialogue timing, tracing the Skyshield breach, Earth's loss of the sky, Wingtail's Project Canopy rescue history, his relationship with Vesper, and his analog blind-spot advantage
 - Bundled Eleven v3 performances for Vesper, Wingtail, and the emergency broadcast, with synchronized subtitles, telemetry, dialogue choices, and Skip Intro
 - Full-frontal Wingtail armory with flight rigs, banana weapons, clothing, live specs, and 120 starting coconuts
+- Easy, Hard, and Banana Insanity mission modes with explicit speed, armor, encounter, missile, crosswind, and boss tuning
 - Seven authored equipment portraits with matched pose, anatomy, perspective, lighting, and materials for turbines, glider surfaces, mounted banana payloads, jackets, and stealth armor
 - Inspect-before-buy equipment cards with plain-English tactical effects, cost, current balance, affordability, and coconut shortfall
 - Stable wrapped equipment typography across desktop, portrait mobile, and short landscape layouts
@@ -43,9 +44,10 @@ Then visit `http://localhost:8080`.
 - Realistic rear chase-view monkey flying head-first into the scene
 - Physical bank, pitch, yaw, wing, scarf, tail, and thruster animation
 - Eight streamed city themes with textured facades, roads, bridges, arcologies, fortresses, command spires, and skyline transitions
-- F-16, F/A-18, F-22, and A-10 encounters
+- F-16, F/A-18, F-22, and A-10 encounters with multi-hit armor that scales by aircraft, level, and difficulty
 - Formation passes, flanking attacks, multi-missile salvos, crosswinds, tightening altitude corridors, recovery windows, and eight escalating theaters
-- A final assault on three destructible Skyshield command relays, followed by a fully voiced real-time victory montage and mission results
+- A final assault on three destructible Skyshield command relays that summons the massive missile-firing Skyshield Titan before the fully voiced victory montage
+- A sharply accelerating city-flight curve from 16 base speed in Patrol to 44 in Last Stand, further modified by mission difficulty
 - Player-fired tumbling bananas, aircraft damage, takedowns, missile impacts, and scoring chains
 - Pooled trails, smoke, explosions, weather, near-miss feedback, and adaptive visual quality
 - Procedural spatial audio and mobile-safe HUD controls
@@ -63,6 +65,7 @@ Then visit `http://localhost:8080`.
 9. The tuning edition protected every spoken line with preloading and timing buffers, lengthened level pacing, made Go Bananas player-triggered, and reduced its active projectile load for smoother mobile play.
 10. The campaign-finale edition doubled the authored theaters, added harsher weather, crosswinds and missile salvos, then gave Wingtail a true objective: destroy the Skyshield command relays and bring humanity's skies back online.
 11. The reliability edition synchronized cinematic pacing to completed voice playback, exposed the full eight-level campaign in the HUD, added a dedicated Go Bananas action, reset resources for every sortie, and refreshed deployed asset versions.
+12. The Titan edition added three mission difficulties, level-scaled aircraft armor, a much faster late-game city, and a post-relay command-carrier boss that must fall before humanity can reclaim the sky.
 
 Joseph originally began the broader game experiment in April 2026, when Codex had only recently become available to him. He later revisited Monkey No-Fly Zone as a teaching example for his intern, his CEO's 17-year-old son, to show that coding and AI could produce a real playable game rather than only snippets or mockups. Small changes to the instructions, combined with focused sub-agent reviews and repeated hands-on testing, drove the progression from the early arcade loop to this 3D release.
 
@@ -78,7 +81,7 @@ npm run build
 npm test
 ```
 
-The build produces `game.js`, embeds every referenced image and voice track into `monkey-no-fly-zone-standalone.html`, and verifies 87 required DOM hooks plus bundle integrity. The current release bundles ten modules into 668.3 KB, passes ten automated tests across the source and standalone release, and ships as a self-contained 23.40 MB HTML game.
+The build produces `game.js`, embeds every referenced image and voice track into `monkey-no-fly-zone-standalone.html`, and verifies 92 required DOM hooks plus bundle integrity. The current release bundles ten modules into 675.0 KB, passes eleven automated tests across the source and standalone release, and ships as a self-contained 23.40 MB HTML game.
 
 ## Project Layout
 

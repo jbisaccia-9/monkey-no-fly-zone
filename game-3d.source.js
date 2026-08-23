@@ -59,8 +59,11 @@ import * as GameVFX from "./game/vfx.js";
   const rageCount = document.getElementById("rageCount");
   const rageMeter = document.getElementById("rageMeter");
   const objectiveHud = document.getElementById("objectiveHud");
+  const objectiveLabel = document.getElementById("objectiveLabel");
   const objectiveMeter = document.getElementById("objectiveMeter");
   const objectiveCount = document.getElementById("objectiveCount");
+  const objectiveStatus = document.getElementById("objectiveStatus");
+  const objectiveUnit = document.getElementById("objectiveUnit");
   const levelNode = document.getElementById("level");
   const threatBar = document.getElementById("threatBar");
   const missileWarning = document.getElementById("missileWarning");
@@ -93,6 +96,8 @@ import * as GameVFX from "./game/vfx.js";
   const selectionBalance = document.getElementById("selectionBalance");
   const loadoutAction = document.getElementById("loadoutAction");
   const deployButton = document.getElementById("deployButton");
+  const difficultyOptions = document.getElementById("difficultyOptions");
+  const difficultyDescription = document.getElementById("difficultyDescription");
   const statNodes = {
     lift: document.getElementById("statLift"),
     handling: document.getElementById("statHandling"),
@@ -124,23 +129,70 @@ import * as GameVFX from "./game/vfx.js";
   const MAX_ACTIVE_SHOTS = 36;
   const LAUNCH_BUDGET = 120;
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const bossPreview = ["localhost", "127.0.0.1"].includes(location.hostname)
+    && new URLSearchParams(location.search).has("boss-preview");
+
+  const DIFFICULTIES = Object.freeze({
+    easy: {
+      name: "Easy",
+      speed: 0.88,
+      enemyHealth: 0.82,
+      encounter: -0.16,
+      jetBonus: -1,
+      missileBonus: 0,
+      missileSpeed: 0.92,
+      crosswind: 0.68,
+      startingShields: 2,
+      bossHp: 55,
+      bossFireInterval: 4.8,
+      description: "Slower pursuit, lighter armor, two emergency shields, fewer fighters, and a 55-hit-point final Titan.",
+    },
+    hard: {
+      name: "Hard",
+      speed: 1.08,
+      enemyHealth: 1.18,
+      encounter: 0.12,
+      jetBonus: 0,
+      missileBonus: 1,
+      missileSpeed: 1.08,
+      crosswind: 1,
+      startingShields: 1,
+      bossHp: 85,
+      bossFireInterval: 3.5,
+      description: "Faster airspace, armored fighters, one emergency shield, aggressive missile formations, and an 85-hit-point final Titan.",
+    },
+    insanity: {
+      name: "Banana Insanity",
+      speed: 1.3,
+      enemyHealth: 1.62,
+      encounter: 0.42,
+      jetBonus: 2,
+      missileBonus: 3,
+      missileSpeed: 1.26,
+      crosswind: 1.38,
+      startingShields: 0,
+      bossHp: 130,
+      bossFireInterval: 2.2,
+      description: "Maximum velocity, reinforced squadrons, relentless salvos, brutal crosswinds, and a 130-hit-point Titan.",
+    },
+  });
 
   const LEVELS = [
     { time: 0, name: "PATROL", threat: 20, maxJets: 3, missileCap: 1, speed: 16, hazard: "Clear airspace" },
-    { time: 32, name: "INTERCEPT", threat: 46, maxJets: 4, missileCap: 1, speed: 18.5, hazard: "Industrial turbulence" },
-    { time: 72, name: "MISSILE LOCK", threat: 74, maxJets: 5, missileCap: 2, speed: 21, crosswind: 0.7, hazard: "Storm crosswinds" },
-    { time: 122, name: "OVERDRIVE", threat: 100, maxJets: 6, missileCap: 3, speed: 24, crosswind: 1.15, hazard: "Ash and blackout conditions" },
-    { time: 182, name: "CROSSFIRE", threat: 100, maxJets: 7, missileCap: 4, speed: 26, crosswind: 1.65, altitudeMin: -3, altitudeMax: 5.55, hazard: "Freezing tower wake" },
-    { time: 252, name: "TEMPEST", threat: 100, maxJets: 7, missileCap: 5, speed: 27.5, crosswind: 2.15, altitudeMin: -2.85, altitudeMax: 5.35, hazard: "Electrical shear" },
-    { time: 332, name: "KILLBOX", threat: 100, maxJets: 8, missileCap: 6, speed: 29, crosswind: 2.75, altitudeMin: -2.65, altitudeMax: 5.1, hazard: "Fortress crossfire" },
-    { time: 422, name: "LAST STAND", threat: 100, maxJets: 8, missileCap: 7, speed: 30.5, crosswind: 3.35, altitudeMin: -2.45, altitudeMax: 4.85, hazard: "Command-core kill corridor" },
+    { time: 32, name: "INTERCEPT", threat: 46, maxJets: 4, missileCap: 1, speed: 20, hazard: "Industrial turbulence" },
+    { time: 72, name: "MISSILE LOCK", threat: 74, maxJets: 5, missileCap: 2, speed: 24, crosswind: 0.7, hazard: "Storm crosswinds" },
+    { time: 122, name: "OVERDRIVE", threat: 100, maxJets: 6, missileCap: 3, speed: 28.5, crosswind: 1.15, hazard: "Ash and blackout conditions" },
+    { time: 182, name: "CROSSFIRE", threat: 100, maxJets: 7, missileCap: 4, speed: 32, crosswind: 1.65, altitudeMin: -3, altitudeMax: 5.55, hazard: "Freezing tower wake" },
+    { time: 252, name: "TEMPEST", threat: 100, maxJets: 7, missileCap: 5, speed: 35.5, crosswind: 2.15, altitudeMin: -2.85, altitudeMax: 5.35, hazard: "Electrical shear" },
+    { time: 332, name: "KILLBOX", threat: 100, maxJets: 8, missileCap: 6, speed: 39.5, crosswind: 2.75, altitudeMin: -2.65, altitudeMax: 5.1, hazard: "Fortress crossfire" },
+    { time: 422, name: "LAST STAND", threat: 100, maxJets: 8, missileCap: 7, speed: 44, crosswind: 3.35, altitudeMin: -2.45, altitudeMax: 4.85, hazard: "Command-core kill corridor" },
   ];
 
   const AIRCRAFT = {
-    f16: { name: "F-16", color: 0x8f9ba0, accent: 0x415760, hp: 2, speed: 1.06, agility: 1.05, score: 500, scale: 0.92 },
-    fa18: { name: "F/A-18", color: 0x7e898d, accent: 0x37484f, hp: 3, speed: 0.96, agility: 0.92, score: 600, scale: 1.02 },
-    f22: { name: "F-22", color: 0x67747b, accent: 0x26363c, hp: 2, speed: 1.2, agility: 1.28, score: 760, scale: 1.04 },
-    a10: { name: "A-10", color: 0x65705f, accent: 0x323b30, hp: 5, speed: 0.72, agility: 0.62, score: 980, scale: 1.18 },
+    f16: { name: "F-16", color: 0x8f9ba0, accent: 0x415760, hp: 3, speed: 1.06, agility: 1.05, score: 500, scale: 0.92 },
+    fa18: { name: "F/A-18", color: 0x7e898d, accent: 0x37484f, hp: 5, speed: 0.96, agility: 0.92, score: 600, scale: 1.02 },
+    f22: { name: "F-22", color: 0x67747b, accent: 0x26363c, hp: 4, speed: 1.2, agility: 1.28, score: 760, scale: 1.04 },
+    a10: { name: "A-10", color: 0x65705f, accent: 0x323b30, hp: 8, speed: 0.72, agility: 0.62, score: 980, scale: 1.18 },
   };
 
   let renderer;
@@ -189,6 +241,8 @@ import * as GameVFX from "./game/vfx.js";
   let steerPointerId = null;
   let mobileMode = false;
   let hangarCategory = "airframe";
+  let difficultyId = "hard";
+  let difficulty = DIFFICULTIES[difficultyId];
   let profile = loadProfile();
   resetLaunchBudget(profile, LAUNCH_BUDGET);
   let previewSelection = { ...profile.equipped };
@@ -204,6 +258,8 @@ import * as GameVFX from "./game/vfx.js";
   let takedowns = 0;
   let relayObjectiveStarted = false;
   let relaysDestroyed = 0;
+  let bossBattleStarted = false;
+  let commandCarrier = null;
   let best = Number(localStorage.getItem("monkeyNoFlyBest3D") || localStorage.getItem("monkeyNoFlyBest") || 0);
 
   const monkey = { x: 0, y: 0.7, z: PLAYER_Z, vy: 0, vx: 0, lane: 1, bank: 0, pitch: 0, radius: PlayerVisual.PLAYER_COLLISION_RADIUS };
@@ -233,6 +289,32 @@ import * as GameVFX from "./game/vfx.js";
 
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
+  }
+
+  function flightSpeed(levelIndex = currentLevel) {
+    return LEVELS[levelIndex].speed * difficulty.speed;
+  }
+
+  function aircraftLimit() {
+    return Math.max(2, LEVELS[currentLevel].maxJets + difficulty.jetBonus);
+  }
+
+  function missileLimit() {
+    return Math.max(1, LEVELS[currentLevel].missileCap + difficulty.missileBonus);
+  }
+
+  function renderDifficulty() {
+    difficulty = DIFFICULTIES[difficultyId] || DIFFICULTIES.hard;
+    difficultyOptions?.querySelectorAll("[data-difficulty]").forEach((button) => {
+      button.setAttribute("aria-pressed", String(button.dataset.difficulty === difficultyId));
+    });
+    if (difficultyDescription) difficultyDescription.textContent = difficulty.description;
+    if (deployButton) {
+      const rig = getItem("airframe", profile.equipped.airframe).name;
+      const weapon = getItem("weapon", profile.equipped.weapon).name;
+      deployButton.textContent = `Deploy · ${difficulty.name}`;
+      deployButton.setAttribute("aria-label", `Deploy ${difficulty.name} mission with ${rig} and ${weapon}`);
+    }
   }
 
   function setDialogVisible(dialog, visible) {
@@ -364,8 +446,8 @@ import * as GameVFX from "./game/vfx.js";
     if (deployButton) {
       const rig = getItem("airframe", profile.equipped.airframe).name;
       const weapon = getItem("weapon", profile.equipped.weapon).name;
-      deployButton.textContent = "Deploy Current Build";
-      deployButton.setAttribute("aria-label", "Deploy current build: " + rig + " and " + weapon);
+      deployButton.textContent = `Deploy · ${difficulty.name}`;
+      deployButton.setAttribute("aria-label", `Deploy ${difficulty.name} mission with ${rig} and ${weapon}`);
     }
   }
 
@@ -437,6 +519,7 @@ import * as GameVFX from "./game/vfx.js";
     shootButton.disabled = true;
     pauseButton.disabled = true;
     hangarStatus.textContent = `New sortie budget: ${LAUNCH_BUDGET} coconuts. Select gear for this run.`;
+    renderDifficulty();
     renderHangarCategory(hangarCategory);
     loadoutTabs?.querySelector('[aria-selected="true"]')?.focus({ preventScroll: true });
     announce("Wingtail loadout hangar opened.");
@@ -627,6 +710,73 @@ import * as GameVFX from "./game/vfx.js";
     const beacon = new THREE.PointLight(0xff3f35, 4.8, 12, 2);
     group.add(beacon);
     group.userData = { core, rings, beacon };
+    return group;
+  }
+
+  function createCommandCarrierView() {
+    const group = new THREE.Group();
+    const hull = makeMaterial(0x34434a, { metalness: 0.88, roughness: 0.24, emissive: 0x0a2028, emissiveIntensity: 0.48 });
+    const armor = makeMaterial(0x71838a, { metalness: 0.8, roughness: 0.3, emissive: 0x102a32, emissiveIntensity: 0.34 });
+    const dark = makeMaterial(0x10181d, { metalness: 0.72, roughness: 0.38 });
+    const coreMaterial = new THREE.MeshBasicMaterial({ color: 0xff3b2f, transparent: true, opacity: 1, toneMapped: false });
+
+    const body = new THREE.Mesh(new THREE.BoxGeometry(5.8, 1.35, 8.8), hull);
+    body.position.z = 0.4;
+    group.add(body);
+    const prow = new THREE.Mesh(new THREE.ConeGeometry(2.9, 5.2, 4), armor);
+    prow.rotation.x = -Math.PI / 2;
+    prow.rotation.z = Math.PI / 4;
+    prow.position.z = -6.2;
+    group.add(prow);
+    const wing = new THREE.Mesh(new THREE.BoxGeometry(14.5, 0.35, 4.8), armor);
+    wing.position.z = 0.6;
+    group.add(wing);
+    const tower = new THREE.Mesh(new THREE.BoxGeometry(2.2, 2.5, 2.8), dark);
+    tower.position.set(0, 1.75, 1.2);
+    group.add(tower);
+
+    const engines = [];
+    for (const x of [-4.4, -1.65, 1.65, 4.4]) {
+      const engine = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.7, 2.4, 10), dark);
+      engine.rotation.x = Math.PI / 2;
+      engine.position.set(x, -0.25, 4.15);
+      group.add(engine);
+      const flame = new THREE.Mesh(new THREE.ConeGeometry(0.5, 2.3, 10), new THREE.MeshBasicMaterial({ color: 0xff7438, transparent: true, opacity: 0.9 }));
+      flame.rotation.x = Math.PI / 2;
+      flame.position.set(x, -0.25, 6.25);
+      group.add(flame);
+      engines.push(flame);
+    }
+
+    const coreHousing = new THREE.Mesh(new THREE.BoxGeometry(3.8, 1.8, 0.34), coreMaterial);
+    coreHousing.position.set(0, 0.35, 4.82);
+    group.add(coreHousing);
+    const core = new THREE.Mesh(new THREE.SphereGeometry(1.32, 20, 14), coreMaterial);
+    core.position.set(0, 0.35, 5.08);
+    group.add(core);
+    const rings = [];
+    for (let index = 0; index < 2; index += 1) {
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(1.5 + index * 0.42, 0.09, 8, 48), coreMaterial);
+      ring.position.copy(core.position);
+      ring.rotation.set(Math.PI / 2 + index * 0.55, index * 0.7, 0);
+      group.add(ring);
+      rings.push(ring);
+    }
+    const beacon = new THREE.PointLight(0xff3b2f, 8, 24, 2);
+    beacon.position.copy(core.position);
+    group.add(beacon);
+    for (const x of [-6.5, 6.5]) {
+      const navigation = new THREE.PointLight(x < 0 ? 0x55dfff : 0xff594c, 5, 15, 2);
+      navigation.position.set(x, 0.45, 1.5);
+      group.add(navigation);
+      const marker = new THREE.Mesh(
+        new THREE.SphereGeometry(0.18, 8, 6),
+        new THREE.MeshBasicMaterial({ color: x < 0 ? 0x55dfff : 0xff594c, toneMapped: false }),
+      );
+      marker.position.copy(navigation.position);
+      group.add(marker);
+    }
+    group.userData = { core, coreMaterial, rings, engines, beacon };
     return group;
   }
 
@@ -1000,6 +1150,8 @@ import * as GameVFX from "./game/vfx.js";
     shots.splice(0).forEach((item) => removeView(item.view));
     pickups.splice(0).forEach((item) => removeView(item.view));
     commandRelays.splice(0).forEach((item) => removeView(item.view));
+    if (commandCarrier) removeView(commandCarrier.view);
+    commandCarrier = null;
     elapsed = 0;
     distance = 0;
     points = 0;
@@ -1008,7 +1160,7 @@ import * as GameVFX from "./game/vfx.js";
     shotCooldown = 0;
     runUpgrades = createRunUpgrades();
     runStats = resolveRunStats(profile, runUpgrades);
-    shields = runStats.maxShields;
+    shields = runStats.maxShields + difficulty.startingShields;
     runCoconuts = 0;
     fury = 0;
     rageTimer = 0;
@@ -1018,6 +1170,7 @@ import * as GameVFX from "./game/vfx.js";
     takedowns = 0;
     relayObjectiveStarted = false;
     relaysDestroyed = 0;
+    bossBattleStarted = false;
     currentLevel = 0;
     seed = (Date.now() ^ 0x74ac31) >>> 0;
     cityStream?.setSeed(seed, { regenerate: true });
@@ -1044,6 +1197,7 @@ import * as GameVFX from "./game/vfx.js";
 
   function startGame() {
     if (state === "loading" || state === "unsupported") return;
+    resetLaunchBudget(profile, LAUNCH_BUDGET);
     reset();
     setDialogVisible(hangarOverlay, false);
     setDialogVisible(upgradeOverlay, false);
@@ -1054,6 +1208,11 @@ import * as GameVFX from "./game/vfx.js";
     pauseButton.disabled = false;
     if (liftButton) liftButton.disabled = false;
     combatDirector?.start({ levelIndex: 0, delay: 0.85 });
+    if (bossPreview) {
+      elapsed = LEVELS.at(-1).time;
+      setLevel(LEVELS.length - 1, false);
+      startBossBattle();
+    }
     audio.init?.();
     audio.setPaused?.(false);
     audio.startRun?.(0);
@@ -1085,6 +1244,10 @@ import * as GameVFX from "./game/vfx.js";
   function findAimTarget() {
     let target = null;
     let bestScore = Infinity;
+    if (commandCarrier && commandCarrier.z <= PLAYER_Z && commandCarrier.z >= -120) {
+      const bossScore = Math.hypot(commandCarrier.x - monkey.x, commandCarrier.y - monkey.y) * 0.45 + Math.abs(commandCarrier.z) * 0.008;
+      if (bossScore < 9.8) return commandCarrier;
+    }
     for (const relay of commandRelays) {
       if (relay.z > PLAYER_Z || relay.z < -115) continue;
       const score = Math.hypot(relay.x - monkey.x, relay.y - monkey.y) * 0.72 + Math.abs(relay.z) * 0.012;
@@ -1234,10 +1397,27 @@ import * as GameVFX from "./game/vfx.js";
 
   function updateObjectiveHud() {
     const remaining = Math.max(0, 3 - relaysDestroyed);
-    if (objectiveHud) objectiveHud.hidden = !relayObjectiveStarted || state === "victory" || state === "victory-result";
-    if (objectiveCount) objectiveCount.textContent = String(remaining);
-    objectiveMeter?.style.setProperty("width", `${Math.round((relaysDestroyed / 3) * 100)}%`);
-    objectiveMeter?.parentElement?.setAttribute("aria-valuenow", String(relaysDestroyed));
+    const active = relayObjectiveStarted || bossBattleStarted;
+    if (objectiveHud) objectiveHud.hidden = !active || state === "victory" || state === "victory-result";
+    if (bossBattleStarted && commandCarrier) {
+      const health = Math.max(0, Math.ceil(commandCarrier.hp));
+      const damageProgress = Math.round((1 - health / commandCarrier.maxHp) * 100);
+      if (objectiveLabel) objectiveLabel.textContent = "Skyshield Titan";
+      if (objectiveCount) objectiveCount.textContent = String(health);
+      if (objectiveUnit) objectiveUnit.textContent = `/ ${commandCarrier.maxHp} HP`;
+      objectiveMeter?.style.setProperty("width", `${damageProgress}%`);
+      objectiveMeter?.parentElement?.setAttribute("aria-label", "Skyshield Titan damage");
+      objectiveMeter?.parentElement?.setAttribute("aria-valuemax", "100");
+      objectiveMeter?.parentElement?.setAttribute("aria-valuenow", String(damageProgress));
+    } else {
+      if (objectiveLabel) objectiveLabel.textContent = "Relay Hunt";
+      if (objectiveCount) objectiveCount.textContent = String(remaining);
+      if (objectiveUnit) objectiveUnit.textContent = "remaining";
+      objectiveMeter?.style.setProperty("width", `${Math.round((relaysDestroyed / 3) * 100)}%`);
+      objectiveMeter?.parentElement?.setAttribute("aria-label", "Command relays destroyed");
+      objectiveMeter?.parentElement?.setAttribute("aria-valuemax", "3");
+      objectiveMeter?.parentElement?.setAttribute("aria-valuenow", String(relaysDestroyed));
+    }
   }
 
   function startRelayObjective() {
@@ -1251,8 +1431,8 @@ import * as GameVFX from "./game/vfx.js";
       const relay = {
         spec: { name: `COMMAND RELAY ${index + 1}` },
         view,
-        hp: 8 + index * 2,
-        maxHp: 8 + index * 2,
+        hp: Math.ceil((8 + index * 2) * difficulty.enemyHealth),
+        maxHp: Math.ceil((8 + index * 2) * difficulty.enemyHealth),
         lane: lanes[index],
         x: LANES[lanes[index]],
         y: altitudes[index],
@@ -1281,12 +1461,90 @@ import * as GameVFX from "./game/vfx.js";
     awardSkill("COMMAND RELAY DESTROYED", 2400);
     audio.playJetDestroyed?.(clamp(relay.x / 8, -1, 1));
     updateObjectiveHud();
-    if (relaysDestroyed >= 3) winGame();
+    if (relaysDestroyed >= 3) startBossBattle();
+  }
+
+  function startBossBattle() {
+    if (bossBattleStarted || !scene) return;
+    bossBattleStarted = true;
+    relayObjectiveStarted = false;
+    const view = createCommandCarrierView();
+    commandCarrier = {
+      spec: { name: "SKYSHIELD TITAN" },
+      view,
+      hp: difficulty.bossHp,
+      maxHp: difficulty.bossHp,
+      x: 0,
+      y: 2.1,
+      z: -108,
+      phase: 0,
+      radius: 3.45,
+      fireTimer: 2.4,
+    };
+    view.position.set(commandCarrier.x, commandCarrier.y, commandCarrier.z);
+    scene.add(view);
+    updateObjectiveHud();
+    GameVFX.spawn(vfxManager, "hitFlash", { color: 0xff382f, intensity: 0.72, impulse: 0.5 });
+    audio.playLevel?.(7);
+    announce("The relays were only its shield. Skyshield Titan inbound. Destroy the command core.");
+  }
+
+  function updateCommandCarrier(dt) {
+    if (!commandCarrier) return;
+    const boss = commandCarrier;
+    boss.phase += dt;
+    if (boss.z < -55) boss.z = Math.min(-55, boss.z + flightSpeed() * 0.2 * dt);
+    boss.x = Math.sin(boss.phase * 0.46) * 5.1;
+    boss.y = 1.75 + Math.sin(boss.phase * 0.73) * 1.25;
+    boss.view.position.set(boss.x, boss.y, boss.z);
+    boss.view.rotation.z = Math.sin(boss.phase * 0.46) * -0.08;
+    boss.view.userData.rings.forEach((ring, index) => { ring.rotation.z += dt * (0.8 + index * 0.35); });
+    boss.view.userData.engines.forEach((flame, index) => { flame.scale.y = 0.82 + Math.sin(elapsed * 22 + index) * 0.18; });
+    boss.view.userData.core.scale.setScalar(0.9 + Math.sin(elapsed * 5.5) * 0.12);
+    boss.view.userData.beacon.intensity = 7 + Math.sin(elapsed * 6) * 2;
+
+    boss.fireTimer -= dt;
+    if (boss.z >= -72 && boss.fireTimer <= 0 && missiles.length < missileLimit()) {
+      const missile = beginMissileLock(boss, {
+        missileId: `titan-${seed}-${Math.floor(elapsed * 1000)}`,
+        leadTime: clamp(1.25 / difficulty.missileSpeed, 0.72, 1.45),
+        bearingHint: boss.x < -1 ? "left" : boss.x > 1 ? "right" : "ahead",
+      });
+      if (missile) {
+        missile.pendingLaunch = {
+          speedScale: difficulty.missileSpeed,
+          guidanceScale: clamp(difficulty.missileSpeed, 0.95, 1.25),
+          lifetime: difficultyId === "insanity" ? 6.6 : 5.8,
+        };
+      }
+      boss.fireTimer = difficulty.bossFireInterval * randomRange(0.82, 1.14);
+    }
+  }
+
+  function destroyCommandCarrier() {
+    if (!commandCarrier) return;
+    const boss = commandCarrier;
+    for (let burst = 0; burst < 4; burst += 1) {
+      GameVFX.spawn(vfxManager, "explosion", {
+        position: { x: boss.x + randomRange(-3.5, 3.5), y: boss.y + randomRange(-1.2, 1.2), z: boss.z + randomRange(-3.5, 3.5) },
+        count: 34,
+        scale: 2.2,
+        speed: 10,
+        color: burst % 2 ? 0xffc04d : 0xff4935,
+        impulse: 1.1,
+      });
+    }
+    removeView(boss.view);
+    commandCarrier = null;
+    awardSkill("SKYSHIELD TITAN DESTROYED", 12000);
+    earnCoconuts(100);
+    audio.playJetDestroyed?.(0);
+    winGame();
   }
 
   function updateCommandRelays(dt) {
     if (!relayObjectiveStarted) return;
-    const speed = LEVELS[currentLevel].speed * 0.43;
+    const speed = flightSpeed() * 0.43;
     for (let index = commandRelays.length - 1; index >= 0; index -= 1) {
       const relay = commandRelays[index];
       relay.z += speed * dt;
@@ -1323,7 +1581,7 @@ import * as GameVFX from "./game/vfx.js";
     state = "victory-result";
     stopCinematicVoice();
     victoryTitle.textContent = "Humanity has its sky back.";
-    victorySubtitle.textContent = `All three relays destroyed. ${Math.floor(distance)} km survived, ${points.toLocaleString()} points scored, and ${runCoconuts} coconuts recovered.`;
+    victorySubtitle.textContent = `All three relays and the Skyshield Titan destroyed. ${Math.floor(distance)} km survived, ${points.toLocaleString()} points scored, and ${runCoconuts} coconuts recovered.`;
     victorySpeaker.textContent = "Mission accomplished";
     victoryProgress?.style.setProperty("width", "100%");
     victorySkipButton.hidden = true;
@@ -1336,6 +1594,8 @@ import * as GameVFX from "./game/vfx.js";
     if (["victory", "victory-result"].includes(state)) return;
     state = "victory";
     commandRelays.splice(0).forEach((relay) => removeView(relay.view));
+    if (commandCarrier) removeView(commandCarrier.view);
+    commandCarrier = null;
     jets.splice(0).forEach((jet) => removeView(jet.view));
     missiles.splice(0).forEach((missile) => removeView(missile.view));
     combatDirector?.stop({ clearSchedule: true });
@@ -1348,8 +1608,8 @@ import * as GameVFX from "./game/vfx.js";
     earnCoconuts(75);
     audio.stopRun?.();
     audio.setPaused?.(false);
-    victoryTitle.textContent = "The relays are down.";
-    victorySubtitle.textContent = "Skyshield is losing control of the stolen fleet.";
+    victoryTitle.textContent = "The Titan is down.";
+    victorySubtitle.textContent = "Its relays are rubble. Skyshield has lost the stolen fleet.";
     victorySpeaker.textContent = "Commander Vesper";
     victoryProgress?.style.setProperty("width", "0%");
     victorySkipButton.hidden = false;
@@ -1429,7 +1689,7 @@ import * as GameVFX from "./game/vfx.js";
       spawnPickup();
       pickupTimer = Math.max(3.2, 5.2 - currentLevel * 0.45) + randomRange(0, 1.2);
     }
-    const speed = LEVELS[currentLevel].speed * 1.08;
+    const speed = flightSpeed() * 1.08;
     for (let index = pickups.length - 1; index >= 0; index -= 1) {
       const pickup = pickups[index];
       pickup.z += speed * dt;
@@ -1494,11 +1754,14 @@ import * as GameVFX from "./game/vfx.js";
       entityId: options.entityId || `legacy-${seed}-${jets.length}`,
       encounterId: options.encounterId || null,
       role: options.role || "interceptor",
-      typeId, spec, view, hp: spec.hp, lane,
+      typeId, spec, view,
+      hp: Math.ceil(spec.hp * (1 + currentLevel * 0.12) * difficulty.enemyHealth),
+      maxHp: Math.ceil(spec.hp * (1 + currentLevel * 0.12) * difficulty.enemyHealth),
+      lane,
       x: LANES[lane] + randomRange(-0.8, 0.8),
       y: Number.isFinite(options.altitude) ? options.altitude : randomRange(-1.6, 5.2),
       z: Number.isFinite(options.spawnZ) ? options.spawnZ : -82,
-      speed: LEVELS[currentLevel].speed * spec.speed * clamp(options.speedScale || 1, 0.78, 1.42),
+      speed: flightSpeed() * spec.speed * clamp(options.speedScale || 1, 0.78, 1.42),
       phase: Number.isFinite(options.phase) ? options.phase : randomRange(0, Math.PI * 2),
       amplitude: (Number.isFinite(options.amplitude) ? options.amplitude : randomRange(0.7, 2.1)) * spec.agility,
       behavior,
@@ -1513,7 +1776,7 @@ import * as GameVFX from "./game/vfx.js";
 
   function beginMissileLock(jet, warning = {}) {
     const level = LEVELS[currentLevel];
-    if (!jet || missiles.length >= level.missileCap) return false;
+    if (!jet || missiles.length >= missileLimit()) return false;
     const view = createMissileView();
     view.visible = false;
     scene.add(view);
@@ -1540,14 +1803,14 @@ import * as GameVFX from "./game/vfx.js";
     missiles.push(missile);
     missileWarning.hidden = false;
     audio.playMissileLock?.(missile);
-    return true;
+    return missile;
   }
 
   function launchMissile(missile, launch = {}) {
     missile.state = "active";
     missile.view.visible = true;
     missile.source = null;
-    missile.speed = 19 * clamp(launch.speedScale || 1, 0.9, 1.35);
+    missile.speed = 19 * clamp((launch.speedScale || 1) * difficulty.missileSpeed, 0.9, 1.55);
     missile.guidanceScale = clamp(launch.guidanceScale || 1, 0.88, 1.25);
     missile.life = clamp(launch.lifetime || 5.5, 3.5, 7);
     missile.direction.set(monkey.x - missile.x, monkey.y - missile.y, monkey.z - missile.z).normalize();
@@ -1562,8 +1825,8 @@ import * as GameVFX from "./game/vfx.js";
     monkey.vy = clamp(monkey.vy - 3.1 * dt, -3.6, 6.4 * runStats.lift);
     if (level.crosswind) {
       const gust = Math.sin(elapsed * 0.83 + currentLevel * 1.7) + Math.sin(elapsed * 2.17) * 0.42;
-      monkey.vx += gust * level.crosswind * dt;
-      monkey.vy += Math.cos(elapsed * 1.31 + currentLevel) * level.crosswind * 0.12 * dt;
+      monkey.vx += gust * level.crosswind * difficulty.crosswind * dt;
+      monkey.vy += Math.cos(elapsed * 1.31 + currentLevel) * level.crosswind * difficulty.crosswind * 0.12 * dt;
     }
     monkey.y += monkey.vy * dt;
     const altitudeMin = level.altitudeMin ?? ALTITUDE_MIN;
@@ -1582,7 +1845,7 @@ import * as GameVFX from "./game/vfx.js";
 
     PlayerVisual.update(playerController, dt, monkey, {
       active: state === "playing",
-      speed: LEVELS[currentLevel].speed,
+      speed: flightSpeed(),
       thrust: 0.52 + clamp(Math.abs(monkey.vy) / 6.4, 0, 1) * 0.42,
     });
   }
@@ -1677,7 +1940,7 @@ import * as GameVFX from "./game/vfx.js";
     for (let i = missiles.length - 1; i >= 0; i -= 1) {
       const missile = missiles[i];
       if (missile.state === "locking") {
-        if (!missile.source || !jets.includes(missile.source)) {
+        if (!missile.source || (!jets.includes(missile.source) && missile.source !== commandCarrier)) {
           removeView(missile.view);
           missiles.splice(i, 1);
           continue;
@@ -1804,6 +2067,29 @@ import * as GameVFX from "./game/vfx.js";
         }
       }
       if (!consumed) {
+        if (commandCarrier && segmentDistance(new THREE.Vector3(commandCarrier.x, commandCarrier.y, commandCarrier.z), shot.previous, shot.view.position) < commandCarrier.radius) {
+          commandCarrier.hp -= shot.damage;
+          const defeated = commandCarrier.hp <= 0;
+          GameVFX.spawn(vfxManager, "explosion", {
+            position: {
+              x: commandCarrier.x + randomRange(-2.4, 2.4),
+              y: commandCarrier.y + randomRange(-0.8, 0.8),
+              z: commandCarrier.z + randomRange(-2.8, 2.8),
+            },
+            count: defeated ? 42 : 9,
+            scale: defeated ? 2.3 : 0.52,
+            speed: defeated ? 10 : 5,
+            color: defeated ? 0xff4935 : 0xffb344,
+            impulse: defeated ? 1.1 : 0.14,
+          });
+          if (!defeated) {
+            commandCarrier.view.userData.coreMaterial.opacity = clamp(commandCarrier.hp / commandCarrier.maxHp, 0.3, 1);
+            updateObjectiveHud();
+          } else destroyCommandCarrier();
+          consumed = true;
+        }
+      }
+      if (!consumed) {
         for (let relayIndex = commandRelays.length - 1; relayIndex >= 0; relayIndex -= 1) {
           const relay = commandRelays[relayIndex];
           if (segmentDistance(new THREE.Vector3(relay.x, relay.y, relay.z), shot.previous, shot.view.position) < relay.radius) {
@@ -1838,6 +2124,7 @@ import * as GameVFX from "./game/vfx.js";
               impulse: jet.hp <= 0 ? 0.55 : 0.08,
             });
             if (jet.hp <= 0) destroyJet(j);
+            else announce(`${jet.spec.name} armor ${Math.ceil(jet.hp)} of ${jet.maxHp}.`);
             consumed = true;
             break;
           }
@@ -1897,7 +2184,10 @@ import * as GameVFX from "./game/vfx.js";
       targetingHud.style.left = `${left}%`;
       targetingHud.style.top = `${top}%`;
     }
-    if (targetStatus) targetStatus.textContent = `${target.spec.name} locked`;
+    if (targetStatus) {
+      const targetName = target === commandCarrier ? "TITAN" : target.spec.name;
+      targetStatus.textContent = `${targetName} · ${Math.max(0, Math.ceil(target.hp || 0))} HP`;
+    }
     if (targetRange) {
       targetRange.hidden = false;
       targetRange.textContent = `${Math.max(1, Math.round((monkey.z - target.z) * 12))} m`;
@@ -1905,7 +2195,7 @@ import * as GameVFX from "./game/vfx.js";
   }
 
   function updateScenery(dt) {
-    const speed = LEVELS[currentLevel].speed * 0.5 * runStats.speed;
+    const speed = flightSpeed() * 0.5 * runStats.speed;
     applyCityEnvironment(cityStream?.update(dt, { speed }));
     for (const cloud of cloudGroup.children) {
       cloud.position.z += speed * dt * 0.34;
@@ -1940,7 +2230,7 @@ import * as GameVFX from "./game/vfx.js";
         updateScenery(dt * 0.35);
         updateCamera(dt);
       } else if (state === "crashing") {
-        PlayerVisual.update(playerController, dt, monkey, { active: false, speed: LEVELS[currentLevel].speed });
+        PlayerVisual.update(playerController, dt, monkey, { active: false, speed: flightSpeed() });
         updateScenery(dt * 0.45);
         updateCamera(dt);
       } else {
@@ -1950,7 +2240,7 @@ import * as GameVFX from "./game/vfx.js";
       return;
     }
     elapsed += dt;
-    distance += dt * (1.5 + currentLevel * 0.18) * runStats.speed;
+    distance += dt * (1.25 + flightSpeed() * 0.032) * runStats.speed;
     shotCooldown = Math.max(0, shotCooldown - dt);
     updateRage(dt);
     updateWeaponCooldown();
@@ -1964,9 +2254,9 @@ import * as GameVFX from "./game/vfx.js";
     combatDirector?.update(dt, {
       activeAircraft: jets.length,
       activeMissiles: missiles.length,
-      maxAircraft: LEVELS[currentLevel].maxJets,
-      maxMissiles: LEVELS[currentLevel].missileCap,
-      difficulty: currentLevel * 0.03,
+      maxAircraft: aircraftLimit(),
+      maxMissiles: missileLimit(),
+      difficulty: currentLevel * 0.03 + difficulty.encounter,
     });
     updateMonkey(dt);
     updateJets(dt);
@@ -1974,6 +2264,8 @@ import * as GameVFX from "./game/vfx.js";
     updateMissiles(dt);
     if (state !== "playing") return;
     updateCommandRelays(dt);
+    if (state !== "playing") return;
+    updateCommandCarrier(dt);
     if (state !== "playing") return;
     updatePickups(dt);
     updateShots(dt);
@@ -2132,6 +2424,14 @@ import * as GameVFX from "./game/vfx.js";
   loadoutTabs?.addEventListener("click", (event) => {
     const tab = event.target.closest("[data-category]");
     if (tab) renderHangarCategory(tab.dataset.category);
+  });
+  difficultyOptions?.addEventListener("click", (event) => {
+    const option = event.target.closest("[data-difficulty]");
+    if (!option || !DIFFICULTIES[option.dataset.difficulty]) return;
+    difficultyId = option.dataset.difficulty;
+    renderDifficulty();
+    updateHangarPreview();
+    announce(`${difficulty.name} difficulty selected.`);
   });
   pauseButton.addEventListener("click", pauseGame);
   resumeButton.addEventListener("click", resumeGame);

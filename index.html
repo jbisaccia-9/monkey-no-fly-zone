@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#071014">
     <title>Monkey See, Monkey Pew</title>
     <meta name="description" content="A flying monkey. A stolen terror fleet. Humanity's last wildly unqualified hope.">
-    <link rel="stylesheet" href="./styles.css?v=18">
+    <link rel="stylesheet" href="./styles.css?v=19">
   </head>
   <body>
     <main class="shell" aria-label="Monkey See, Monkey Pew game">
@@ -81,10 +81,10 @@
         <button class="rage-action" id="rageActionButton" type="button" aria-label="Activate Go Bananas" title="Activate Go Bananas (R)" hidden disabled>
           Go Bananas
         </button>
-        <div class="objective-hud" id="objectiveHud" aria-label="Command relay objective" hidden>
-          <span>Relay Hunt</span>
+        <div class="objective-hud" id="objectiveHud" aria-label="Campaign objective" hidden>
+          <span id="objectiveLabel">Relay Hunt</span>
           <i role="progressbar" aria-label="Command relays destroyed" aria-valuemin="0" aria-valuemax="3" aria-valuenow="0"><b id="objectiveMeter"></b></i>
-          <strong><b id="objectiveCount">3</b> remaining</strong>
+          <strong id="objectiveStatus"><b id="objectiveCount">3</b> <span id="objectiveUnit">remaining</span></strong>
         </div>
       </section>
 
@@ -226,6 +226,15 @@
                   <button type="button" id="loadoutAction">Equipped</button>
                 </div>
               </aside>
+              <section class="difficulty-selector" aria-label="Gameplay difficulty">
+                <small>Mission difficulty</small>
+                <div class="difficulty-options" id="difficultyOptions" role="group" aria-label="Choose gameplay difficulty">
+                  <button type="button" data-difficulty="easy">Easy</button>
+                  <button type="button" data-difficulty="hard" aria-pressed="true">Hard</button>
+                  <button type="button" data-difficulty="insanity">Banana Insanity</button>
+                </div>
+                <p id="difficultyDescription">Faster airspace, armored fighters, one emergency shield, aggressive missile formations, and an 85-hit-point final Titan.</p>
+              </section>
               <p class="hangar-economy-note">Each sortie starts with 120 coconuts. Owned equipment remains unlocked.</p>
               <p class="hangar-status" id="hangarStatus" role="status">Choose equipment, then deploy.</p>
               <button class="deploy-button" id="deployButton" type="button">Deploy Equipped Loadout</button>
@@ -302,6 +311,6 @@
     </main>
 
     <script src="./audio.js?v=3"></script>
-    <script src="./game.js?v=26"></script>
+    <script src="./game.js?v=27"></script>
   </body>
 </html>

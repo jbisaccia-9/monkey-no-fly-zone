@@ -33,7 +33,12 @@ test("3D source integrates every gameplay module", () => {
   assert.match(source, /\{ time: 422, name: "LAST STAND"/, "the campaign should reach an eighth final theater");
   assert.match(source, /crosswind: 3\.35/, "late levels should add meaningful crosswind pressure");
   assert.match(source, /function startRelayObjective\(/, "the final level should deploy command relays");
-  assert.match(source, /function winGame\(/, "destroying the relays should produce a victory state");
+  assert.match(source, /function startBossBattle\(/, "destroying the relays should summon the final boss");
+  assert.match(source, /function destroyCommandCarrier\(/, "destroying the Titan should produce a victory state");
+  assert.match(source, /bossHp: 130/, "Banana Insanity should field the strongest Titan");
+  assert.match(source, /name: "LAST STAND"[^\n]+speed: 44/, "the final city sector should be substantially faster");
+  assert.match(source, /f16: \{[^\n]+hp: 3/, "F-16s should survive multiple standard banana hits");
+  assert.match(source, /spec\.hp \* \(1 \+ currentLevel \* 0\.12\) \* difficulty\.enemyHealth/, "aircraft armor should scale by level and mode");
 });
 
 test("late campaign escalates into the Skyshield command-core finale", () => {
@@ -50,6 +55,19 @@ test("late campaign escalates into the Skyshield command-core finale", () => {
   assert.equal((victory.match(/\.\/assets\/voices\//g) || []).length, 3);
   assert.match(victory, /Operation Banana Sky is complete/);
   assert.match(victory, /const DURATION = 19\.7/, "the ending should preserve every recorded performance");
+});
+
+test("hangar exposes three distinct gameplay difficulty modes", () => {
+  const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
+  const source = fs.readFileSync(path.join(root, "game-3d.source.js"), "utf8");
+  for (const mode of ["easy", "hard", "insanity"]) assert.match(html, new RegExp(`data-difficulty="${mode}"`));
+  assert.match(html, /Banana Insanity/);
+  assert.match(source, /speed: 0\.88/);
+  assert.match(source, /speed: 1\.08/);
+  assert.match(source, /speed: 1\.3/);
+  assert.match(source, /startingShields: 2/);
+  assert.match(source, /if \(relaysDestroyed >= 3\) startBossBattle\(\)/);
+  assert.match(source, /SKYSHIELD TITAN DESTROYED/);
 });
 
 test("opening briefing establishes the mission", () => {
