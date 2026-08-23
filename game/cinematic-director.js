@@ -1,6 +1,8 @@
 import * as THREE from "../vendor/three.module.min.js";
 
-const DURATION = 39;
+const DURATION = 51.6;
+const GLOBE_END = 6.55;
+const CITY_END = 13.45;
 
 function ease(value) {
   const t = Math.max(0, Math.min(1, value));
@@ -195,7 +197,7 @@ export function createCinematicDirector({
       telemetry: ["SKYSHIELD DRILL // ACTIVE", "COMMAND VIRUS // UPLOADED"],
     },
     {
-      at: 5.3,
+      at: GLOBE_END,
       speaker: "Emergency broadcast",
       text: "Skyshield seized every connected aircraft and turned Earth's defenses against its cities.",
       voice: "./assets/voices/02-earth-loses-sky.mp3",
@@ -203,7 +205,7 @@ export function createCinematicDirector({
       telemetry: ["IFF DATABASE // REWRITTEN", "DEFENSE FLEET // HOSTILE"],
     },
     {
-      at: 10.2,
+      at: CITY_END,
       speaker: "Commander Vesper",
       text: "I know one pilot it never studied. Project Canopy's analog rescue ace.",
       voice: "./assets/voices/03-rescue-ace.mp3",
@@ -211,7 +213,7 @@ export function createCinematicDirector({
       telemetry: ["PROJECT CANOPY // OFF-GRID", "RESCUE ACE // WINGTAIL"],
     },
     {
-      at: 14.7,
+      at: 19.75,
       speaker: "Wingtail",
       text: "You forgot my excellent sense of direction.",
       voice: "./assets/voices/04-direction.mp3",
@@ -219,7 +221,7 @@ export function createCinematicDirector({
       telemetry: ["CANOPY RESCUES // 47", "UNAUTHORIZED LANDINGS // 12"],
     },
     {
-      at: 17.6,
+      at: 22.25,
       speaker: "Commander Vesper",
       text: "You landed in my office.",
       voice: "./assets/voices/05-office.mp3",
@@ -227,7 +229,7 @@ export function createCinematicDirector({
       telemetry: ["VESPER'S OFFICE // REPAIRED", "INCIDENT REPORT // SEALED"],
     },
     {
-      at: 19.1,
+      at: 24,
       speaker: "Wingtail",
       text: "I found you.",
       voice: "./assets/voices/06-found-you.mp3",
@@ -235,7 +237,7 @@ export function createCinematicDirector({
       telemetry: ["FLIGHT LOG // DISPUTED"],
     },
     {
-      at: 20.4,
+      at: 25.35,
       speaker: "Commander Vesper",
       text: "I built your wings. You crossed three cyclones and brought forty-seven people home.",
       voice: "./assets/voices/07-first-wings.mp3",
@@ -243,7 +245,7 @@ export function createCinematicDirector({
       telemetry: ["ANALOG WING RIG // VESPER MK I", "CIVILIANS RECOVERED // 47"],
     },
     {
-      at: 25,
+      at: 32,
       speaker: "Commander Vesper",
       text: "No biometric profile. No digital controls. No guided weapons. To Skyshield, you do not exist.",
       voice: "./assets/voices/08-invisible-pilot.mp3",
@@ -251,7 +253,7 @@ export function createCinematicDirector({
       telemetry: ["BIO-SIGNATURE // NO MATCH", "FLIGHT SYSTEM // ANALOG", "ORDNANCE // UNHACKABLE"],
     },
     {
-      at: 32,
+      at: 42.35,
       speaker: "Wingtail",
       text: "Finally. Professional recognition.",
       voice: "./assets/voices/09-recognition.mp3",
@@ -259,7 +261,7 @@ export function createCinematicDirector({
       telemetry: ["SKYSHIELD VISIBILITY // ZERO"],
     },
     {
-      at: 35,
+      at: 45,
       speaker: "Commander Vesper",
       text: "Destroy the command relays and give humanity back its sky. Are you in?",
       voice: "./assets/voices/10-mission.mp3",
@@ -305,7 +307,7 @@ export function createCinematicDirector({
 
   function updateScene(time) {
     updateCue(time);
-    if (time < 5.3) {
+    if (time < GLOBE_END) {
       threatGlobe.visible = true;
       lockout.visible = false;
       city.visible = false;
@@ -320,7 +322,7 @@ export function createCinematicDirector({
       threatGlobe.rotation.x = Math.sin(time * 0.55) * 0.08;
       threatGlobe.userData.shell.material.color.setHex(time > 1.5 ? 0xff4b42 : 0x48d8d0);
       warning.intensity = ease((time - 1.2) / 1.3) * 4;
-    } else if (time < 10.2) {
+    } else if (time < CITY_END) {
       threatGlobe.visible = false;
       city.visible = true;
       ground.visible = true;
@@ -328,8 +330,9 @@ export function createCinematicDirector({
       frame.visible = false;
       vesper.mesh.visible = false;
       wingtail.mesh.visible = false;
-      const cityTime = time - 5.3;
-      const pathTime = reducedMotion ? Math.floor(cityTime / 1.2) / 4 : ease(cityTime / 4.9);
+      const cityTime = time - GLOBE_END;
+      const cityDuration = CITY_END - GLOBE_END;
+      const pathTime = reducedMotion ? Math.floor(cityTime / 1.2) / 5 : ease(cityTime / cityDuration);
       camera.position.copy(path.getPoint(Math.min(0.98, pathTime)));
       target.set(0, 1.1, camera.position.z - 13);
       camera.lookAt(target);
@@ -338,16 +341,16 @@ export function createCinematicDirector({
         jet.position.x = -9 - index * 2.2 + cityTime * (4.8 + index * 0.35);
         jet.position.y += Math.sin(time * 2.2 + index) * 0.002;
       });
-      const blackout = ease((time - 6.5) / 2.2);
+      const blackout = ease((cityTime - 1.2) / 3.1);
       city.userData.material.emissiveIntensity = 0.44 * (1 - blackout) + 0.035;
       warning.intensity = blackout * 7;
-      const blastTime = Math.max(0, Math.min(1, (time - 7.4) / 1.3));
+      const blastTime = Math.max(0, Math.min(1, (cityTime - 2.1) / 1.8));
       blast.material.opacity = Math.sin(blastTime * Math.PI) * 0.88;
       blast.scale.setScalar(1 + blastTime * 6);
-      lockout.visible = time >= 8.1;
+      lockout.visible = cityTime >= 3.1;
       if (lockout.visible) {
         lockout.rotation.z = reducedMotion ? 0 : Math.sin(time * 4) * 0.025;
-        lockout.scale.setScalar(0.92 + ease((time - 8.1) / 0.5) * 0.08);
+        lockout.scale.setScalar(0.92 + ease((cityTime - 3.1) / 0.5) * 0.08);
       }
     } else {
       let activeCue = cues[0];
@@ -402,6 +405,8 @@ export function createCinematicDirector({
       telemetry: ["WINGTAIL // MISSION ACCEPTANCE PENDING"],
       progress: 1,
     });
+    const responseDelay = choice === "doubt" ? 3200 : 3700;
+    const completionDelay = choice === "doubt" ? 7150 : 6050;
     const first = setTimeout(() => {
       showPortrait("vesper");
       onCue({
@@ -411,8 +416,8 @@ export function createCinematicDirector({
         telemetry: ["OPERATION BANANA SKY // AUTHORIZED"],
         progress: 1,
       });
-    }, 3500);
-    const second = setTimeout(() => finish(false), 5900);
+    }, responseDelay);
+    const second = setTimeout(() => finish(false), completionDelay);
     timers.add(first);
     timers.add(second);
   }

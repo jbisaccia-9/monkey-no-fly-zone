@@ -26,8 +26,8 @@ Then visit `http://localhost:8080`.
 ## Current 3D Edition
 
 - Cinematic Commander Vesper briefing that launches Operation: Banana Sky
-- Interactive 39-second real-time Three.js prologue tracing the Skyshield breach, Earth's loss of the sky, Wingtail's Project Canopy rescue history, his relationship with Vesper, and his analog blind-spot advantage
-- Bundled, character-directed dialogue tracks for Vesper and Wingtail with stable playback across browsers, plus synchronized subtitles, telemetry, dialogue choices, and Skip Intro
+- Interactive 52-second real-time Three.js prologue tracing the Skyshield breach, Earth's loss of the sky, Wingtail's Project Canopy rescue history, his relationship with Vesper, and his analog blind-spot advantage
+- Bundled Eleven v3 performances for Vesper, Wingtail, and the emergency broadcast, with synchronized subtitles, telemetry, dialogue choices, and Skip Intro
 - Full-frontal Wingtail armory with flight rigs, banana weapons, clothing, live specs, and 120 starting coconuts
 - Seven authored equipment portraits with matched pose, anatomy, perspective, lighting, and materials for turbines, glider surfaces, mounted banana payloads, jackets, and stealth armor
 - Inspect-before-buy equipment cards with plain-English tactical effects, cost, current balance, affordability, and coconut shortfall
@@ -57,6 +57,7 @@ Then visit `http://localhost:8080`.
 5. The progression edition added the Vesper Field Armory: a face-to-face Wingtail equipment preview, coconut economy, persistent purchases, selectable flight rigs, banana weapons and clothing, plus upgrades earned during each mission.
 6. The transmission edition turned Vesper's static briefing into a real-time interactive prologue, showing the fall of the defense network before Wingtail answers the call.
 7. The rage edition added repeat-sortie funding, airborne recovery pickups, armor restoration, fury progression, and the automatic banana-rocket overdrive.
+8. The performance edition replaced the original system voices with separately cast, emotionally directed character performances and retimed the cinematic around natural dialogue pacing.
 
 Joseph originally began the broader game experiment in April 2026, when Codex had only recently become available to him. He later revisited Monkey No-Fly Zone as a teaching example for his intern, his CEO's 17-year-old son, to show that coding and AI could produce a real playable game rather than only snippets or mockups. Small changes to the instructions, combined with focused sub-agent reviews and repeated hands-on testing, drove the progression from the early arcade loop to this 3D release.
 
@@ -72,7 +73,7 @@ npm run build
 npm test
 ```
 
-The build produces `game.js`, embeds every referenced image and voice track into `monkey-no-fly-zone-standalone.html`, and verifies 75 required DOM hooks plus bundle integrity. The current release bundles nine modules into 653.8 KB, passes nine automated tests across the source and standalone release, and ships as a self-contained 17.73 MB HTML game.
+The build produces `game.js`, embeds every referenced image and voice track into `monkey-no-fly-zone-standalone.html`, and verifies 75 required DOM hooks plus bundle integrity. The current release bundles nine modules into 653.8 KB, passes nine automated tests across the source and standalone release, and ships as a self-contained 18.29 MB HTML game.
 
 ## Project Layout
 
@@ -92,6 +93,7 @@ The build produces `game.js`, embeds every referenced image and voice track into
 - `assets/`: generated hero, aircraft, and skyline art
 - `game.js`: generated browser bundle
 - `monkey-no-fly-zone-standalone.html`: self-contained shareable release
+- `scripts/generate-elevenlabs-voices.mjs`: local-only ElevenLabs voice production pipeline; reads the ignored `.env.local` and never ships the API key
 - `scripts/`: repeatable bundle, standalone, and verification tooling
 
 ## Privacy
