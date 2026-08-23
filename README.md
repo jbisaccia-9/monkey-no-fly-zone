@@ -17,7 +17,7 @@ Then visit `http://localhost:8080`.
 ## Controls
 
 - `Space`, `W`, or `Up Arrow`: climb
-- `Enter`: fire banana pulse
+- `Enter`: throw a ballistic banana
 - `X`, `F`, or left `Shift`: alternate fire controls
 - `P` or `Escape`: pause or resume
 - `M`: mute or unmute
@@ -31,7 +31,7 @@ Then visit `http://localhost:8080`.
 - Four streamed city themes with textured facades, roads, bridges, rooftops, and skyline transitions
 - F-16, F/A-18, F-22, and A-10 encounters
 - Formation passes, flanking attacks, missile sorties, recovery windows, and escalating difficulty
-- Player-fired banana pulses, aircraft damage, takedowns, missile impacts, and scoring chains
+- Player-fired tumbling bananas, aircraft damage, takedowns, missile impacts, and scoring chains
 - Pooled trails, smoke, explosions, weather, near-miss feedback, and adaptive visual quality
 - Procedural spatial audio and mobile-safe HUD controls
 
@@ -56,7 +56,7 @@ npm run build
 npm test
 ```
 
-The build produces `game.js`, embeds every referenced image into `monkey-no-fly-zone-standalone.html`, and verifies 29 required DOM hooks plus bundle integrity. The current release bundles seven modules into 621.1 KB, passes seven automated tests across the source and standalone release, and ships as a self-contained 6.73 MB HTML game.
+The build produces `game.js`, embeds every referenced image into `monkey-no-fly-zone-standalone.html`, and verifies 29 required DOM hooks plus bundle integrity. The current release bundles seven modules into 621.8 KB, passes seven automated tests across the source and standalone release, and ships as a self-contained 6.73 MB HTML game.
 
 ## Project Layout
 

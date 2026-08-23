@@ -219,11 +219,35 @@ import * as GameVFX from "./game/vfx.js";
 
   function createShotView() {
     const group = new THREE.Group();
-    const core = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffef77 }));
-    core.scale.z = 4.2;
-    group.add(core);
-    const glow = new THREE.PointLight(0xffc73d, 2.2, 5);
+    const curve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(-0.44, 0.16, 0),
+      new THREE.Vector3(-0.24, -0.03, 0),
+      new THREE.Vector3(0, -0.11, 0),
+      new THREE.Vector3(0.24, -0.03, 0),
+      new THREE.Vector3(0.44, 0.16, 0),
+    ]);
+    const peel = new THREE.Mesh(
+      new THREE.TubeGeometry(curve, 12, 0.095, 7, false),
+      makeMaterial(0xffd92f, { metalness: 0.05, roughness: 0.48, emissive: 0x9b5f00, emissiveIntensity: 0.72 }),
+    );
+    group.add(peel);
+
+    const tipGeometry = new THREE.SphereGeometry(0.082, 7, 5);
+    const tipMaterial = makeMaterial(0x5b3515, { metalness: 0.02, roughness: 0.86 });
+    const leftTip = new THREE.Mesh(tipGeometry, tipMaterial);
+    leftTip.position.set(-0.46, 0.18, 0);
+    leftTip.scale.set(0.72, 1.35, 0.72);
+    leftTip.rotation.z = -0.62;
+    group.add(leftTip);
+    const rightTip = leftTip.clone();
+    rightTip.position.x = 0.46;
+    rightTip.rotation.z = 0.62;
+    group.add(rightTip);
+
+    const glow = new THREE.PointLight(0xffc73d, 1.5, 4);
     group.add(glow);
+    group.scale.setScalar(1.18);
+    group.userData.isBananaProjectile = true;
     return group;
   }
 
@@ -460,7 +484,18 @@ import * as GameVFX from "./game/vfx.js";
     const view = createShotView();
     view.position.set(monkey.x, monkey.y, monkey.z - 0.9);
     scene.add(view);
-    shots.push({ x: monkey.x, y: monkey.y, z: monkey.z - 0.9, previous: new THREE.Vector3(monkey.x, monkey.y, monkey.z - 0.9), velocity: direction.multiplyScalar(54), life: 1.9, trailTimer: 0, view });
+    shots.push({
+      x: monkey.x,
+      y: monkey.y,
+      z: monkey.z - 0.9,
+      previous: new THREE.Vector3(monkey.x, monkey.y, monkey.z - 0.9),
+      velocity: direction.multiplyScalar(54),
+      life: 1.9,
+      trailTimer: 0,
+      spin: randomRange(11, 16) * (simRandom() > 0.5 ? 1 : -1),
+      tumble: randomRange(7, 11),
+      view,
+    });
     GameVFX.spawn(vfxManager, "projectileTrail", {
       position: view.position,
       velocity: shots[shots.length - 1].velocity,
@@ -758,6 +793,9 @@ import * as GameVFX from "./game/vfx.js";
       shot.z += shot.velocity.z * dt;
       shot.life -= dt;
       shot.view.position.set(shot.x, shot.y, shot.z);
+      shot.view.rotation.z += shot.spin * dt;
+      shot.view.rotation.x = Math.sin((1.9 - shot.life) * shot.tumble) * 0.32;
+      shot.view.rotation.y = Math.cos((1.9 - shot.life) * shot.tumble * 0.74) * 0.24;
       shot.trailTimer -= dt;
       if (shot.trailTimer <= 0) {
         shot.trailTimer = mobileMode ? 0.06 : 0.035;

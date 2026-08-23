@@ -11,6 +11,8 @@ test("3D source integrates every gameplay module", () => {
     assert.match(source, new RegExp(`\\./game/${moduleName}\\.js`));
   }
   assert.match(source, /event\.code === "Enter"[^\n]+fire\(\)/, "Enter should fire the player weapon");
+  assert.match(source, /CatmullRomCurve3/, "player projectiles should use a curved banana body");
+  assert.match(source, /isBananaProjectile = true/, "player projectiles should be identifiable as bananas");
 });
 
 test("opening briefing establishes the mission", () => {
