@@ -206,6 +206,17 @@ export function awardCoconuts(profile, amount) {
   return earned;
 }
 
+export function ensureLaunchBudget(profile, minimum = 120, storage = globalThis.localStorage) {
+  const floor = Math.max(0, Math.floor(Number(minimum) || 0));
+  const current = Math.max(0, Math.floor(Number(profile.coconuts) || 0));
+  const granted = Math.max(0, floor - current);
+  if (granted > 0) {
+    profile.coconuts = floor;
+    saveProfile(profile, storage);
+  }
+  return granted;
+}
+
 export function createRunUpgrades() {
   return { flight: 0, arsenal: 0, armor: 0 };
 }

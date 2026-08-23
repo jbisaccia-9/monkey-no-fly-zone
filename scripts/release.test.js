@@ -21,6 +21,9 @@ test("3D source integrates every gameplay module", () => {
   assert.match(source, /event\.code === "Enter"[^\n]+fire\(\)/, "Enter should fire the player weapon");
   assert.match(source, /CatmullRomCurve3/, "player projectiles should use a curved banana body");
   assert.match(source, /isBananaProjectile = true/, "player projectiles should be identifiable as bananas");
+  assert.match(source, /function spawnPickup\(/, "collectible pickups should spawn during play");
+  assert.match(source, /function activateRage\(/, "Go Bananas rage should be implemented");
+  assert.match(source, /fire\(true\)/, "rage should automatically fire heavy banana rockets");
 });
 
 test("opening briefing establishes the mission", () => {
@@ -62,6 +65,9 @@ test("hangar economy purchases and equips persistent loadouts", async () => {
   assert.equal(profile.coconuts, 75);
   assert.equal(profile.equipped.weapon, "plantain-piercer");
   assert.equal(loadout.loadProfile(storage).equipped.weapon, "plantain-piercer");
+  assert.equal(loadout.ensureLaunchBudget(profile, 120, storage), 45);
+  assert.equal(profile.coconuts, 120);
+  assert.equal(loadout.ensureLaunchBudget(profile, 120, storage), 0);
   assert.ok(loadout.resolveRunStats(profile, { flight: 1, arsenal: 1, armor: 1 }).maxShields >= 1);
 });
 

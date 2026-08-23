@@ -36,6 +36,9 @@ Then visit `http://localhost:8080`.
 - Persistent purchases and equipped gear, with coconuts earned from takedowns, level clears, and survival
 - Three flight rigs, three banana weapon systems, three outfits, and meaningful lift, handling, speed, firepower, armor, income, shield, and missile-lock modifiers
 - Mid-mission upgrades for flight control, banana velocity, and coconut armor at level transitions
+- A 120-coconut minimum launch stipend on every new sortie and restart, while purchased equipment remains permanently owned
+- Airborne coconut caches and rescue bananas that add currency, score, armor recovery, and Go Bananas charge
+- An eight-second Banana Rage earned from ten fury points or four aircraft takedowns, with automatic heavy banana rockets
 - Realistic rear chase-view monkey flying head-first into the scene
 - Physical bank, pitch, yaw, wing, scarf, tail, and thruster animation
 - Four streamed city themes with textured facades, roads, bridges, rooftops, and skyline transitions
@@ -53,6 +56,7 @@ Then visit `http://localhost:8080`.
 4. The cinematic rebuild began with a master-agent audit, then used focused agents for hero art, player and camera, city streaming, combat, VFX, audio, UI, mobile behavior, and build QA before master integration.
 5. The progression edition added the Vesper Field Armory: a face-to-face Wingtail equipment preview, coconut economy, persistent purchases, selectable flight rigs, banana weapons and clothing, plus upgrades earned during each mission.
 6. The transmission edition turned Vesper's static briefing into a real-time interactive prologue, showing the fall of the defense network before Wingtail answers the call.
+7. The rage edition added repeat-sortie funding, airborne recovery pickups, armor restoration, fury progression, and the automatic banana-rocket overdrive.
 
 Joseph originally began the broader game experiment in April 2026, when Codex had only recently become available to him. He later revisited Monkey No-Fly Zone as a teaching example for his intern, his CEO's 17-year-old son, to show that coding and AI could produce a real playable game rather than only snippets or mockups. Small changes to the instructions, combined with focused sub-agent reviews and repeated hands-on testing, drove the progression from the early arcade loop to this 3D release.
 
@@ -68,7 +72,7 @@ npm run build
 npm test
 ```
 
-The build produces `game.js`, embeds every referenced image and voice track into `monkey-no-fly-zone-standalone.html`, and verifies 71 required DOM hooks plus bundle integrity. The current release bundles nine modules into 649.9 KB, passes nine automated tests across the source and standalone release, and ships as a self-contained 17.73 MB HTML game.
+The build produces `game.js`, embeds every referenced image and voice track into `monkey-no-fly-zone-standalone.html`, and verifies 75 required DOM hooks plus bundle integrity. The current release bundles nine modules into 653.8 KB, passes nine automated tests across the source and standalone release, and ships as a self-contained 17.73 MB HTML game.
 
 ## Project Layout
 

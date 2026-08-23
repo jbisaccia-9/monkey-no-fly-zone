@@ -9,6 +9,7 @@ import {
   awardCoconuts,
   createRunUpgrades,
   displayStats,
+  ensureLaunchBudget,
   getItem,
   loadProfile,
   purchaseOrEquip,
@@ -51,6 +52,10 @@ import * as GameVFX from "./game/vfx.js";
   const multiplierNode = document.getElementById("multiplier");
   const coconutCount = document.getElementById("coconutCount");
   const shieldCount = document.getElementById("shieldCount");
+  const rageHud = document.getElementById("rageHud");
+  const rageLabel = document.getElementById("rageLabel");
+  const rageCount = document.getElementById("rageCount");
+  const rageMeter = document.getElementById("rageMeter");
   const levelNode = document.getElementById("level");
   const threatBar = document.getElementById("threatBar");
   const missileWarning = document.getElementById("missileWarning");
@@ -100,6 +105,9 @@ import * as GameVFX from "./game/vfx.js";
   const ALTITUDE_MIN = -3.2;
   const ALTITUDE_MAX = 5.8;
   const PLAYER_Z = 1.4;
+  const FURY_THRESHOLD = 10;
+  const RAGE_DURATION = 8;
+  const LAUNCH_BUDGET = 120;
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   const LEVELS = [
@@ -157,12 +165,18 @@ import * as GameVFX from "./game/vfx.js";
   let runStats = resolveRunStats(profile, runUpgrades);
   let shields = runStats.maxShields;
   let runCoconuts = 0;
+  let fury = 0;
+  let rageTimer = 0;
+  let rageAutoFire = 0;
+  let pickupTimer = 2.4;
+  let takedowns = 0;
   let best = Number(localStorage.getItem("monkeyNoFlyBest3D") || localStorage.getItem("monkeyNoFlyBest") || 0);
 
   const monkey = { x: 0, y: 0.7, z: PLAYER_Z, vy: 0, vx: 0, lane: 1, bank: 0, pitch: 0, radius: PlayerVisual.PLAYER_COLLISION_RADIUS };
   const jets = [];
   const missiles = [];
   const shots = [];
+  const pickups = [];
   const keys = new Set();
   const clockColor = new THREE.Color();
   const tempV = new THREE.Vector3();
@@ -383,10 +397,13 @@ import * as GameVFX from "./game/vfx.js";
     setOverlayVisible(false);
     setDialogVisible(upgradeOverlay, false);
     setDialogVisible(hangarOverlay, true);
+    const stipend = ensureLaunchBudget(profile, LAUNCH_BUDGET);
     previewSelection = { ...profile.equipped };
     shootButton.disabled = true;
     pauseButton.disabled = true;
-    hangarStatus.textContent = "Select gear to compare it with your current build.";
+    hangarStatus.textContent = stipend > 0
+      ? `Vesper replenished ${stipend} coconuts. Select gear for the next sortie.`
+      : "Select gear to compare it with your current build.";
     renderHangarCategory(hangarCategory);
     loadoutTabs?.querySelector('[aria-selected="true"]')?.focus({ preventScroll: true });
     announce("Wingtail loadout hangar opened.");
@@ -553,7 +570,7 @@ import * as GameVFX from "./game/vfx.js";
     return group;
   }
 
-  function createShotView(weaponId = "ripe-repeater") {
+  function createShotView(weaponId = "ripe-repeater", rage = false) {
     const group = new THREE.Group();
     const plantain = weaponId === "plantain-piercer";
     const curve = new THREE.CatmullRomCurve3([
@@ -588,8 +605,59 @@ import * as GameVFX from "./game/vfx.js";
 
     const glow = new THREE.PointLight(plantain ? 0x9fe64d : 0xffc73d, 1.5, 4);
     group.add(glow);
+    if (rage) {
+      const rocketBody = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.11, 0.16, 0.75, 8),
+        makeMaterial(0x38464b, { metalness: 0.72, roughness: 0.3 }),
+      );
+      rocketBody.rotation.z = Math.PI / 2;
+      rocketBody.position.x = 0.72;
+      group.add(rocketBody);
+      const flame = new THREE.Mesh(
+        new THREE.ConeGeometry(0.14, 0.6, 8),
+        new THREE.MeshBasicMaterial({ color: 0xff6a2d, transparent: true, opacity: 0.92 }),
+      );
+      flame.rotation.z = -Math.PI / 2;
+      flame.position.x = 1.28;
+      group.add(flame);
+      group.userData.flame = flame;
+    }
     group.scale.setScalar(weaponId === "cluster-bunch" ? 0.86 : plantain ? 1.3 : 1.18);
+    if (rage) group.scale.multiplyScalar(1.18);
     group.userData.isBananaProjectile = true;
+    group.userData.isRageRocket = rage;
+    return group;
+  }
+
+  function createPickupView(type) {
+    const group = new THREE.Group();
+    if (type === "banana") {
+      const banana = createShotView("ripe-repeater");
+      banana.scale.multiplyScalar(1.28);
+      group.add(banana);
+    } else {
+      const shell = new THREE.Mesh(
+        new THREE.SphereGeometry(0.48, 14, 10),
+        makeMaterial(0x8c5128, { metalness: 0.05, roughness: 0.88, emissive: 0x2c1207, emissiveIntensity: 0.45 }),
+      );
+      shell.scale.y = 0.9;
+      group.add(shell);
+      const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0x24110b });
+      [[-0.13, 0.14], [0.13, 0.14], [0, -0.08]].forEach(([x, y]) => {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.045, 7, 5), eyeMaterial);
+        eye.position.set(x, y, 0.44);
+        group.add(eye);
+      });
+    }
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(0.72, 0.035, 7, 32),
+      new THREE.MeshBasicMaterial({ color: type === "banana" ? 0xffdf55 : 0x62ead0, transparent: true, opacity: 0.78 }),
+    );
+    ring.rotation.x = Math.PI / 2;
+    group.add(ring);
+    const light = new THREE.PointLight(type === "banana" ? 0xffd94f : 0x62ead0, 2.2, 6);
+    group.add(light);
+    group.userData.ring = ring;
     return group;
   }
 
@@ -865,6 +933,7 @@ import * as GameVFX from "./game/vfx.js";
     jets.splice(0).forEach((item) => removeView(item.view));
     missiles.splice(0).forEach((item) => removeView(item.view));
     shots.splice(0).forEach((item) => removeView(item.view));
+    pickups.splice(0).forEach((item) => removeView(item.view));
     elapsed = 0;
     distance = 0;
     points = 0;
@@ -875,6 +944,11 @@ import * as GameVFX from "./game/vfx.js";
     runStats = resolveRunStats(profile, runUpgrades);
     shields = runStats.maxShields;
     runCoconuts = 0;
+    fury = 0;
+    rageTimer = 0;
+    rageAutoFire = 0;
+    pickupTimer = 2.4;
+    takedowns = 0;
     currentLevel = 0;
     seed = (Date.now() ^ 0x74ac31) >>> 0;
     cityStream?.setSeed(seed, { regenerate: true });
@@ -894,11 +968,13 @@ import * as GameVFX from "./game/vfx.js";
     if (targetStatus) targetStatus.textContent = "Scanning";
     if (targetRange) targetRange.hidden = true;
     updateWeaponCooldown();
+    updateRageHud();
     setLevel(0, false);
   }
 
   function startGame() {
     if (state === "loading" || state === "unsupported") return;
+    ensureLaunchBudget(profile, LAUNCH_BUDGET);
     reset();
     setDialogVisible(hangarOverlay, false);
     setDialogVisible(upgradeOverlay, false);
@@ -951,14 +1027,64 @@ import * as GameVFX from "./game/vfx.js";
   }
 
   function updateWeaponCooldown() {
-    const charge = Math.round(clamp(1 - shotCooldown / runStats.cooldown, 0, 1) * 100);
+    const cooldown = rageTimer > 0 ? 0.14 : runStats.cooldown;
+    const charge = Math.round(clamp(1 - shotCooldown / cooldown, 0, 1) * 100);
     weaponCooldown?.style.setProperty("--weapon-charge", String(charge));
     weaponCooldown?.setAttribute("aria-valuenow", String(charge));
   }
 
-  function fire() {
+  function updateRageHud() {
+    const active = rageTimer > 0;
+    const charge = active ? clamp(rageTimer / RAGE_DURATION, 0, 1) : clamp(fury / FURY_THRESHOLD, 0, 1);
+    rageHud?.classList.toggle("is-active", active);
+    if (rageLabel) rageLabel.textContent = active ? "Banana Rage" : "Go Bananas";
+    if (rageCount) rageCount.textContent = active ? `${rageTimer.toFixed(1)}s` : `${Math.floor(fury)} / ${FURY_THRESHOLD}`;
+    rageMeter?.style.setProperty("width", `${Math.round(charge * 100)}%`);
+    rageMeter?.parentElement?.setAttribute("aria-valuenow", String(active ? Math.ceil(rageTimer) : Math.floor(fury)));
+    rageMeter?.parentElement?.setAttribute("aria-valuemax", String(active ? RAGE_DURATION : FURY_THRESHOLD));
+  }
+
+  function activateRage() {
+    if (rageTimer > 0) return;
+    fury = 0;
+    rageTimer = RAGE_DURATION;
+    rageAutoFire = 0;
+    awardSkill("GO BANANAS", 750);
+    GameVFX.spawn(vfxManager, "hitFlash", { color: 0xffb52e, intensity: 0.7, impulse: 0.32 });
+    audio.playLevel?.(3);
+    updateRageHud();
+    announce("Go Bananas activated. Heavy banana rockets online for eight seconds.");
+  }
+
+  function addFury(amount) {
+    if (rageTimer > 0) {
+      rageTimer = Math.min(RAGE_DURATION + 2, rageTimer + Number(amount || 0) * 0.18);
+    } else {
+      fury = Math.min(FURY_THRESHOLD, fury + Math.max(0, Number(amount) || 0));
+      if (fury >= FURY_THRESHOLD) activateRage();
+    }
+    updateRageHud();
+  }
+
+  function updateRage(dt) {
+    if (rageTimer <= 0) return;
+    rageTimer = Math.max(0, rageTimer - dt);
+    rageAutoFire -= dt;
+    if (rageAutoFire <= 0) {
+      shotCooldown = 0;
+      fire(true);
+      rageAutoFire = 0.16;
+    }
+    if (rageTimer <= 0) {
+      rageHud?.classList.remove("is-active");
+      announce("Banana rage depleted.");
+    }
+    updateRageHud();
+  }
+
+  function fire(rageShot = rageTimer > 0) {
     if (state !== "playing" || shotCooldown > 0) return;
-    shotCooldown = runStats.cooldown;
+    shotCooldown = rageShot ? 0.14 : runStats.cooldown;
     const target = findAimTarget();
     const direction = new THREE.Vector3(0, 0, -1);
     if (target) {
@@ -966,13 +1092,15 @@ import * as GameVFX from "./game/vfx.js";
       direction.lerp(tempV, innerWidth <= 700 ? 0.82 : 0.68).normalize();
     }
     const weaponId = profile.equipped.weapon;
-    for (let index = 0; index < runStats.projectiles; index += 1) {
-      const offset = index - (runStats.projectiles - 1) / 2;
+    const projectileCount = rageShot ? Math.max(3, runStats.projectiles) : runStats.projectiles;
+    const spread = rageShot ? Math.max(0.045, runStats.spread) : runStats.spread;
+    for (let index = 0; index < projectileCount; index += 1) {
+      const offset = index - (projectileCount - 1) / 2;
       const shotDirection = direction.clone();
-      shotDirection.x += offset * runStats.spread;
-      shotDirection.y += Math.abs(offset) * runStats.spread * 0.16;
+      shotDirection.x += offset * spread;
+      shotDirection.y += Math.abs(offset) * spread * 0.16;
       shotDirection.normalize();
-      const view = createShotView(weaponId);
+      const view = createShotView(weaponId, rageShot);
       view.position.set(monkey.x + offset * 0.16, monkey.y, monkey.z - 0.9);
       scene.add(view);
       const shot = {
@@ -980,9 +1108,10 @@ import * as GameVFX from "./game/vfx.js";
         y: view.position.y,
         z: view.position.z,
         previous: view.position.clone(),
-        velocity: shotDirection.multiplyScalar(runStats.projectileVelocity),
-        damage: runStats.damage,
-        life: 1.9,
+        velocity: shotDirection.multiplyScalar(rageShot ? Math.max(72, runStats.projectileVelocity * 1.25) : runStats.projectileVelocity),
+        damage: rageShot ? Math.max(4, runStats.damage * 2) : runStats.damage,
+        life: rageShot ? 2.5 : 1.9,
+        rage: rageShot,
         trailTimer: 0,
         spin: randomRange(11, 16) * (simRandom() > 0.5 ? 1 : -1),
         tumble: randomRange(7, 11),
@@ -993,13 +1122,85 @@ import * as GameVFX from "./game/vfx.js";
         position: view.position,
         velocity: shot.velocity,
         life: 0.14,
-        width: weaponId === "cluster-bunch" ? 0.05 : 0.075,
-        length: 1.2,
-        color: weaponId === "plantain-piercer" ? 0xa8ec58 : 0xffed68,
+        width: rageShot ? 0.11 : weaponId === "cluster-bunch" ? 0.05 : 0.075,
+        length: rageShot ? 1.8 : 1.2,
+        color: rageShot ? 0xff6a32 : weaponId === "plantain-piercer" ? 0xa8ec58 : 0xffed68,
       });
     }
     updateWeaponCooldown();
     audio.playShot?.();
+  }
+
+  function spawnPickup() {
+    if (pickups.length >= 5) return;
+    const type = simRandom() < 0.68 ? "coconut" : "banana";
+    const lane = Math.floor(simRandom() * LANES.length);
+    const view = createPickupView(type);
+    const pickup = {
+      type,
+      x: LANES[lane] + randomRange(-0.45, 0.45),
+      y: randomRange(-1.1, 4.8),
+      z: randomRange(-88, -72),
+      phase: randomRange(0, Math.PI * 2),
+      view,
+    };
+    view.position.set(pickup.x, pickup.y, pickup.z);
+    scene.add(view);
+    pickups.push(pickup);
+  }
+
+  function collectPickup(index) {
+    const pickup = pickups[index];
+    if (!pickup) return;
+    GameVFX.spawn(vfxManager, "explosion", {
+      position: pickup,
+      count: 10,
+      scale: 0.42,
+      speed: 3.8,
+      color: pickup.type === "banana" ? 0xffdf55 : 0x62ead0,
+      impulse: 0.08,
+    });
+    if (pickup.type === "banana") {
+      const shieldCap = Math.max(2, runStats.maxShields + 1);
+      shields = Math.min(shieldCap, shields + 1);
+      awardSkill("RESCUE BANANA", 250);
+      addFury(2);
+      announce("Rescue banana collected. Coconut armor restored.");
+    } else {
+      earnCoconuts(5);
+      awardSkill("COCONUT CACHE", 125);
+      addFury(1);
+      announce("Coconut collected. Five coconuts secured.");
+    }
+    updateProgressDisplays();
+    audio.playFlap?.(1.35);
+    removeView(pickup.view);
+    pickups.splice(index, 1);
+  }
+
+  function updatePickups(dt) {
+    pickupTimer -= dt;
+    if (pickupTimer <= 0) {
+      spawnPickup();
+      pickupTimer = Math.max(3.2, 5.2 - currentLevel * 0.45) + randomRange(0, 1.2);
+    }
+    const speed = LEVELS[currentLevel].speed * 1.08;
+    for (let index = pickups.length - 1; index >= 0; index -= 1) {
+      const pickup = pickups[index];
+      pickup.z += speed * dt;
+      pickup.phase += dt * 2.4;
+      pickup.view.position.set(pickup.x, pickup.y + Math.sin(pickup.phase) * 0.16, pickup.z);
+      pickup.view.rotation.y += dt * 1.9;
+      pickup.view.rotation.z = Math.sin(pickup.phase * 0.7) * 0.18;
+      if (pickup.view.userData.ring) pickup.view.userData.ring.rotation.z += dt * 1.6;
+      const close = Math.abs(pickup.z - monkey.z) < 1.25
+        && Math.hypot(pickup.x - monkey.x, pickup.y - monkey.y) < 1.35;
+      if (close) collectPickup(index);
+      else if (pickup.z > 14) {
+        removeView(pickup.view);
+        pickups.splice(index, 1);
+      }
+    }
   }
 
   function setLevel(index, shouldAnnounce = true) {
@@ -1321,6 +1522,9 @@ import * as GameVFX from "./game/vfx.js";
       shot.view.rotation.z += shot.spin * dt;
       shot.view.rotation.x = Math.sin((1.9 - shot.life) * shot.tumble) * 0.32;
       shot.view.rotation.y = Math.cos((1.9 - shot.life) * shot.tumble * 0.74) * 0.24;
+      if (shot.rage && shot.view.userData.flame) {
+        shot.view.userData.flame.scale.y = 0.82 + Math.sin(performance.now() * 0.03) * 0.18;
+      }
       shot.trailTimer -= dt;
       if (shot.trailTimer <= 0) {
         shot.trailTimer = mobileMode ? 0.06 : 0.035;
@@ -1328,8 +1532,8 @@ import * as GameVFX from "./game/vfx.js";
           start: shot.previous,
           end: shot.view.position,
           life: 0.16,
-          width: 0.055,
-          color: 0xffe58b,
+          width: shot.rage ? 0.105 : 0.055,
+          color: shot.rage ? 0xff6935 : 0xffe58b,
         });
       }
       let consumed = false;
@@ -1382,6 +1586,8 @@ import * as GameVFX from "./game/vfx.js";
       }
     }
     earnCoconuts(Math.max(2, Math.round(jet.spec.score / 190)));
+    takedowns += 1;
+    addFury(2.5);
     awardSkill(`${jet.spec.name} DOWN`, jet.spec.score);
     audio.playJetDestroyed?.(clamp(jet.x / 8, -1, 1));
     cameraShake = reducedMotion ? 0.04 : 0.15;
@@ -1471,6 +1677,7 @@ import * as GameVFX from "./game/vfx.js";
     elapsed += dt;
     distance += dt * (1.5 + currentLevel * 0.18) * runStats.speed;
     shotCooldown = Math.max(0, shotCooldown - dt);
+    updateRage(dt);
     updateWeaponCooldown();
     chainTimer -= dt;
     if (chainTimer <= 0 && chain > 1) {
@@ -1491,6 +1698,7 @@ import * as GameVFX from "./game/vfx.js";
     if (state !== "playing") return;
     updateMissiles(dt);
     if (state !== "playing") return;
+    updatePickups(dt);
     updateShots(dt);
     updateScenery(dt);
     updateCamera(dt);

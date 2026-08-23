@@ -309,6 +309,69 @@ body {
   letter-spacing: 0;
 }
 
+.rage-hud {
+  position: absolute;
+  top: 112px;
+  left: 50%;
+  width: min(300px, calc(100vw - 28px));
+  min-height: 34px;
+  display: grid;
+  grid-template-columns: auto minmax(80px, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 10px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(244, 207, 88, 0.42);
+  border-radius: 3px;
+  background: rgba(7, 12, 14, 0.84);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.34);
+  color: var(--accent);
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+}
+
+.rage-hud > i {
+  height: 6px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.rage-hud > i b {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: var(--accent);
+  box-shadow: 0 0 12px rgba(255, 218, 73, 0.8);
+  transition: width 160ms ease;
+}
+
+.rage-hud strong {
+  min-width: 48px;
+  color: #fff3ae;
+  font-size: 10px;
+  letter-spacing: 0;
+  text-align: right;
+}
+
+.rage-hud.is-active {
+  border-color: #ff784d;
+  background: rgba(54, 15, 8, 0.92);
+  color: #fff;
+  animation: rage-pulse 520ms ease-in-out infinite alternate;
+}
+
+.rage-hud.is-active > i b {
+  background: #ff6a35;
+}
+
+@keyframes rage-pulse {
+  to { box-shadow: 0 0 24px rgba(255, 84, 43, 0.58); }
+}
+
 .targeting-hud {
   position: absolute;
   z-index: 2;
@@ -357,7 +420,7 @@ body {
 .missile-warning {
   position: absolute;
   z-index: 4;
-  top: max(122px, calc(env(safe-area-inset-top) + 108px));
+  top: max(156px, calc(env(safe-area-inset-top) + 142px));
   left: 50%;
   display: grid;
   grid-template-columns: 34px 1fr;
@@ -1720,8 +1783,13 @@ button:focus-visible {
     font-size: 11px;
   }
 
+  .rage-hud {
+    top: 143px;
+    width: min(286px, calc(100vw - 24px));
+  }
+
   .missile-warning {
-    top: max(146px, calc(env(safe-area-inset-top) + 134px));
+    top: max(184px, calc(env(safe-area-inset-top) + 172px));
   }
 
   .targeting-hud {
@@ -2026,12 +2094,19 @@ button:focus-visible {
     padding: 5px 9px;
   }
 
+  .rage-hud {
+    top: 90px;
+    width: min(250px, 42vw);
+    min-height: 30px;
+    padding: 5px 8px;
+  }
+
   .overlay__controls {
     display: none;
   }
 
   .missile-warning {
-    top: max(89px, calc(env(safe-area-inset-top) + 78px));
+    top: max(126px, calc(env(safe-area-inset-top) + 114px));
     width: min(266px, calc(100vw - 24px));
   }
 
