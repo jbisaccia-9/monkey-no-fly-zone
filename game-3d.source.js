@@ -2,6 +2,7 @@ import * as THREE from "./vendor/three.module.min.js";
 import * as PlayerVisual from "./game/player-visual.js";
 import { createCityStream } from "./game/city-stream.js";
 import { createCombatDirector } from "./game/combat-director.js";
+import { createCinematicDirector } from "./game/cinematic-director.js";
 import {
   CATALOG,
   FIELD_UPGRADES,
@@ -24,6 +25,19 @@ import * as GameVFX from "./game/vfx.js";
   const overlayText = document.getElementById("overlayText");
   const briefingOrder = document.getElementById("briefingOrder");
   const startButton = document.getElementById("startButton");
+  const skipIntroButton = document.getElementById("skipIntroButton");
+  const briefingFallback = document.getElementById("briefingFallback");
+  const briefingCanvas = document.getElementById("briefingCanvas");
+  const cinematicSlate = document.getElementById("cinematicSlate");
+  const cinematicSpeaker = document.getElementById("cinematicSpeaker");
+  const cinematicSubtitle = document.getElementById("cinematicSubtitle");
+  const cinematicProgress = document.getElementById("cinematicProgress");
+  const cinematicDialogue = document.getElementById("cinematicDialogue");
+  const dialogueSpeaker = document.getElementById("dialogueSpeaker");
+  const dialogueSubtitle = document.getElementById("dialogueSubtitle");
+  const dialogueChoices = document.getElementById("dialogueChoices");
+  const briefingIdentity = document.getElementById("briefingIdentity");
+  const briefingChannel = document.getElementById("briefingChannel");
   const pauseOverlay = document.getElementById("pauseOverlay");
   const resumeButton = document.getElementById("resumeButton");
   const restartButton = document.getElementById("restartButton");
@@ -102,6 +116,7 @@ import * as GameVFX from "./game/vfx.js";
   };
 
   let renderer;
+  let cinematic;
   let scene;
   let camera;
   let cityStream;
@@ -114,6 +129,7 @@ import * as GameVFX from "./game/vfx.js";
   let keyLight;
   let playerLight;
   let state = "loading";
+  let briefingPhase = "ready";
   let pausedFrom = "playing";
   let currentLevel = 0;
   let elapsed = 0;
@@ -666,11 +682,25 @@ import * as GameVFX from "./game/vfx.js";
       PlayerVisual.update(playerController, 0, monkey, { active: false, speed: LEVELS[0].speed });
       PlayerVisual.updateCamera(playerController, FIXED_STEP, monkey);
       combatDirector = createDirector();
+      try {
+        cinematic = createCinematicDirector({
+          canvas: briefingCanvas,
+          vesperAsset: briefingFallback.currentSrc || briefingFallback.src,
+          wingtailAsset: hangarPortrait.currentSrc || hangarPortrait.src,
+          reducedMotion,
+          onCue: handleCinematicCue,
+          onChoice: showCinematicChoices,
+          onComplete: completeCinematic,
+        });
+      } catch (cinematicError) {
+        console.warn("Cinematic renderer unavailable; using direct briefing.", cinematicError);
+        cinematic = null;
+      }
 
       resize();
       state = "ready";
       startButton.disabled = false;
-      startButton.textContent = "Accept Mission";
+      startButton.textContent = "Start Transmission";
       announce("3D flight systems ready.");
     } catch (error) {
       console.error(error);
@@ -693,6 +723,7 @@ import * as GameVFX from "./game/vfx.js";
     camera.fov = mobile && height > width ? 65 : 55;
     camera.updateProjectionMatrix();
     PlayerVisual.setMobile(playerController, mobile);
+    cinematic?.resize();
     document.body.classList.toggle("touch-controls-ready", mobile && matchMedia("(pointer: coarse)").matches);
     touchControls?.setAttribute("aria-hidden", String(!(mobile && matchMedia("(pointer: coarse)").matches)));
   }
@@ -701,6 +732,111 @@ import * as GameVFX from "./game/vfx.js";
     overlay.classList.toggle("is-visible", visible);
     overlay.setAttribute("aria-hidden", String(!visible));
     canvas.inert = visible;
+  }
+
+  function handleCinematicCue(cue = {}) {
+    if (Number.isFinite(cue.progress) && cinematicProgress) {
+      cinematicProgress.style.width = Math.round(cue.progress * 100) + "%";
+    }
+    if (!cue.speaker && !cue.text) return;
+    if (cue.speaker) {
+      cinematicSpeaker.textContent = cue.speaker;
+      dialogueSpeaker.textContent = cue.speaker;
+    }
+    if (cue.text) {
+      cinematicSubtitle.textContent = cue.text;
+      dialogueSubtitle.textContent = cue.text;
+    }
+    if (cue.speaker && cue.text) speakCinematicLine(cue.speaker, cue.text);
+    if (cue.speaker === "Global Defense Network") audio.playMissileLaunch?.();
+    else if (cue.speaker === "Evacuation channel") audio.playImpact?.(true);
+    else if (cue.speaker === "Commander Vesper") audio.playLevel?.();
+  }
+
+  function speakCinematicLine(speaker, text) {
+    if (audio.isMuted?.() || !("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") return;
+    const line = new SpeechSynthesisUtterance(text);
+    line.volume = 0.78;
+    if (speaker === "Commander Vesper") {
+      line.pitch = 0.68;
+      line.rate = 0.9;
+    } else if (speaker === "Wingtail") {
+      line.pitch = 1.12;
+      line.rate = 1.02;
+    } else {
+      line.pitch = 0.84;
+      line.rate = 0.96;
+    }
+    speechSynthesis.cancel();
+    speechSynthesis.speak(line);
+  }
+
+  function startCinematic() {
+    if (briefingPhase !== "ready") return;
+    if (!cinematic) {
+      briefingPhase = "complete";
+      showHangar();
+      return;
+    }
+    briefingPhase = "playing";
+    state = "cinematic";
+    audio.init?.();
+    audio.setPaused?.(false);
+    window.speechSynthesis?.cancel();
+    overlay.dataset.mode = "cinematic";
+    overlayTitle.hidden = true;
+    overlayText.hidden = true;
+    briefingOrder.hidden = true;
+    briefingFallback.hidden = true;
+    cinematicSlate.hidden = false;
+    cinematicDialogue.hidden = false;
+    dialogueChoices.hidden = true;
+    startButton.hidden = true;
+    skipIntroButton.hidden = false;
+    briefingIdentity.textContent = "Field Transmission";
+    briefingChannel.textContent = "Archive 72H // Live reconstruction";
+    cinematic.start();
+    announce("Emergency transmission started. Skip Intro is available.");
+  }
+
+  function showCinematicChoices() {
+    briefingPhase = "choice";
+    state = "dialogue";
+    skipIntroButton.hidden = true;
+    dialogueSpeaker.textContent = "Wingtail";
+    dialogueSubtitle.textContent = "Vesper is waiting for your answer.";
+    cinematicSpeaker.textContent = "Wingtail";
+    cinematicSubtitle.textContent = "YOUR RESPONSE REQUIRED";
+    dialogueChoices.hidden = false;
+    dialogueChoices.querySelector("button")?.focus({ preventScroll: true });
+    announce("Choose Wingtail's response.");
+  }
+
+  function answerCinematic(response) {
+    if (briefingPhase !== "choice") return;
+    briefingPhase = "resolving";
+    state = "cinematic";
+    dialogueChoices.hidden = true;
+    cinematic.choose(response);
+  }
+
+  function completeCinematic() {
+    if (briefingPhase === "complete") return;
+    briefingPhase = "complete";
+    localStorage.setItem("monkeySeeMonkeyPewIntroSeen", "1");
+    audio.setPaused?.(true);
+    window.speechSynthesis?.cancel();
+    cinematic?.dispose();
+    cinematic = null;
+    cinematicSlate.hidden = true;
+    cinematicDialogue.hidden = true;
+    skipIntroButton.hidden = true;
+    showHangar();
+  }
+
+  function skipCinematicSequence() {
+    if (!["playing", "choice", "resolving"].includes(briefingPhase)) return;
+    cinematic?.skip();
   }
 
   function reset() {
@@ -1364,10 +1500,13 @@ import * as GameVFX from "./game/vfx.js";
     window.setTimeout(() => {
       state = "gameover";
       overlay.dataset.mode = "result";
+      overlayTitle.hidden = false;
+      overlayText.hidden = false;
       overlayTitle.textContent = "Flight terminated.";
       overlayText.textContent = `${reason}. You survived ${finalDistance} km, scored ${points.toLocaleString()} points, and recovered ${runCoconuts} coconuts.`;
       if (briefingOrder) briefingOrder.hidden = true;
       startButton.textContent = "Return to Hangar";
+      startButton.hidden = false;
       setOverlayVisible(true);
       announce(`Flight terminated by ${reason}.`);
     }, reducedMotion ? 120 : 650);
@@ -1456,7 +1595,15 @@ import * as GameVFX from "./game/vfx.js";
     keys.delete("TouchLift");
   }
 
-  startButton.addEventListener("click", showHangar);
+  startButton.addEventListener("click", () => {
+    if (overlay.dataset.mode === "result" || briefingPhase === "complete") showHangar();
+    else startCinematic();
+  });
+  skipIntroButton?.addEventListener("click", skipCinematicSequence);
+  dialogueChoices?.addEventListener("click", (event) => {
+    const choice = event.target.closest("[data-response]");
+    if (choice) answerCinematic(choice.dataset.response);
+  });
   deployButton?.addEventListener("click", startGame);
   loadoutAction?.addEventListener("click", () => {
     const item = getItem(hangarCategory, previewSelection[hangarCategory]);
@@ -1476,7 +1623,11 @@ import * as GameVFX from "./game/vfx.js";
   pauseButton.addEventListener("click", pauseGame);
   resumeButton.addEventListener("click", resumeGame);
   restartButton.addEventListener("click", () => { resumeGame(); startGame(); });
-  muteButton.addEventListener("click", () => { audio.setMuted?.(!(audio.isMuted?.() || false)); updateMuteControl(); });
+  muteButton.addEventListener("click", () => {
+    audio.setMuted?.(!(audio.isMuted?.() || false));
+    if (audio.isMuted?.()) window.speechSynthesis?.cancel();
+    updateMuteControl();
+  });
   shootButton.addEventListener("pointerdown", (event) => { event.preventDefault(); event.stopPropagation(); fire(); });
   steerZone?.addEventListener("pointerdown", beginSteering);
   steerZone?.addEventListener("pointermove", updateSteeringFromPointer);
@@ -1495,12 +1646,31 @@ import * as GameVFX from "./game/vfx.js";
   });
   canvas.addEventListener("webglcontextrestored", () => location.reload());
   window.addEventListener("resize", resize);
-  window.addEventListener("blur", () => { if (state === "playing") pauseGame(); });
-  document.addEventListener("visibilitychange", () => { if (document.hidden && state === "playing") pauseGame(); });
+  window.addEventListener("blur", () => {
+    if (state === "playing") pauseGame();
+    cinematic?.setPaused(true);
+  });
+  window.addEventListener("focus", () => cinematic?.setPaused(false));
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden && state === "playing") pauseGame();
+    cinematic?.setPaused(document.hidden);
+  });
   window.addEventListener("keydown", (event) => {
     if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.code) || (state === "playing" && event.code === "Enter")) event.preventDefault();
     if (event.repeat && ["KeyA", "KeyD", "ArrowLeft", "ArrowRight"].includes(event.code)) return;
     keys.add(event.code);
+    if (["cinematic", "dialogue"].includes(state) && event.code === "Escape") {
+      event.preventDefault();
+      skipCinematicSequence();
+      return;
+    }
+    if (state === "dialogue" && ["ArrowLeft", "ArrowRight", "KeyA", "KeyD"].includes(event.code)) {
+      event.preventDefault();
+      const choices = [...dialogueChoices.querySelectorAll("button")];
+      const current = Math.max(0, choices.indexOf(document.activeElement));
+      choices[event.code === "ArrowLeft" || event.code === "KeyA" ? Math.max(0, current - 1) : Math.min(choices.length - 1, current + 1)]?.focus();
+      return;
+    }
     if (state === "playing") {
       if (event.code === "Space" || event.code === "KeyW" || event.code === "ArrowUp") flap();
       if (event.code === "KeyA" || event.code === "ArrowLeft") changeLane(-1);

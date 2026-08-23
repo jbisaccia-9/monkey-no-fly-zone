@@ -7,7 +7,7 @@ const root = path.resolve(__dirname, "..");
 
 test("3D source integrates every gameplay module", () => {
   const source = fs.readFileSync(path.join(root, "game-3d.source.js"), "utf8");
-  for (const moduleName of ["player-visual", "city-stream", "combat-director", "vfx"]) {
+  for (const moduleName of ["player-visual", "city-stream", "combat-director", "cinematic-director", "vfx"]) {
     assert.match(source, new RegExp(`\\./game/${moduleName}\\.js`));
   }
   assert.match(source, /event\.code === "Enter"[^\n]+fire\(\)/, "Enter should fire the player weapon");
@@ -21,6 +21,9 @@ test("opening briefing establishes the mission", () => {
   assert.match(html, /Commander Vesper/);
   assert.match(html, /only one who can save this planet/i);
   assert.match(html, /assets\/commander-vesper-v1\.png/);
+  assert.match(html, /Start Transmission/);
+  assert.match(html, /Real-time 3D emergency transmission/);
+  assert.match(html, /You're trusting a monkey\?/);
 });
 
 test("hangar economy purchases and equips persistent loadouts", async () => {

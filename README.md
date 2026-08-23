@@ -26,9 +26,11 @@ Then visit `http://localhost:8080`.
 ## Current 3D Edition
 
 - Cinematic Commander Vesper briefing that launches Operation: Banana Sky
+- Interactive 12-second real-time Three.js prologue with a city blackout, fighter attack, Vesper transmission, frontal Wingtail response, local character speech, dialogue choices, subtitles, and Skip Intro
 - Full-frontal Wingtail armory with flight rigs, banana weapons, clothing, live specs, and 120 starting coconuts
 - Seven authored equipment portraits with matched pose, anatomy, perspective, lighting, and materials for turbines, glider surfaces, mounted banana payloads, jackets, and stealth armor
 - Inspect-before-buy equipment cards with plain-English tactical effects, cost, current balance, affordability, and coconut shortfall
+- Stable wrapped equipment typography across desktop, portrait mobile, and short landscape layouts
 - Equipped-to-preview comparisons with exact green/red deltas and an explicit preview-only state
 - Persistent purchases and equipped gear, with coconuts earned from takedowns, level clears, and survival
 - Three flight rigs, three banana weapon systems, three outfits, and meaningful lift, handling, speed, firepower, armor, income, shield, and missile-lock modifiers
@@ -49,6 +51,7 @@ Then visit `http://localhost:8080`.
 3. The first Three.js edition moved the game into perspective 3D while preserving the same escalating survival structure.
 4. The cinematic rebuild began with a master-agent audit, then used focused agents for hero art, player and camera, city streaming, combat, VFX, audio, UI, mobile behavior, and build QA before master integration.
 5. The progression edition added the Vesper Field Armory: a face-to-face Wingtail equipment preview, coconut economy, persistent purchases, selectable flight rigs, banana weapons and clothing, plus upgrades earned during each mission.
+6. The transmission edition turned Vesper's static briefing into a real-time interactive prologue, showing the fall of the defense network before Wingtail answers the call.
 
 Joseph originally began the broader game experiment in April 2026, when Codex had only recently become available to him. He later revisited Monkey No-Fly Zone as a teaching example for his intern, his CEO's 17-year-old son, to show that coding and AI could produce a real playable game rather than only snippets or mockups. Small changes to the instructions, combined with focused sub-agent reviews and repeated hands-on testing, drove the progression from the early arcade loop to this 3D release.
 
@@ -64,13 +67,14 @@ npm run build
 npm test
 ```
 
-The build produces `game.js`, embeds every referenced image into `monkey-no-fly-zone-standalone.html`, and verifies 57 required DOM hooks plus bundle integrity. The current release bundles eight modules into 637.3 KB, passes eight automated tests across the source and standalone release, and ships as a self-contained 16.97 MB HTML game.
+The build produces `game.js`, embeds every referenced image into `monkey-no-fly-zone-standalone.html`, and verifies 70 required DOM hooks plus bundle integrity. The current release bundles nine modules into 645.9 KB, passes eight automated tests across the source and standalone release, and ships as a self-contained 16.98 MB HTML game.
 
 ## Project Layout
 
 - `game-3d.source.js`: integrated game runtime and state machine
 - `game/player-visual.js`: player rig, animation, collision size, and chase camera
 - `game/loadout.js`: equipment catalog, coconut economy, persistence, and run upgrades
+- `game/cinematic-director.js`: deterministic Three.js prologue, dialogue choices, and cinematic cleanup
 - `game/city-stream.js`: streamed procedural city and level themes
 - `game/combat-director.js`: deterministic encounter and missile scheduling
 - `game/vfx.js`: pooled trails, smoke, explosions, weather, and camera impulses

@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#071014">
     <title>Monkey See, Monkey Pew</title>
     <meta name="description" content="A flying monkey. A stolen terror fleet. Humanity's last wildly unqualified hope.">
-    <link rel="stylesheet" href="./styles.css?v=13">
+    <link rel="stylesheet" href="./styles.css?v=14">
   </head>
   <body>
     <main class="shell" aria-label="Monkey See, Monkey Pew game">
@@ -113,10 +113,16 @@
         <div class="overlay__panel mission-panel">
           <figure class="briefing-visual" id="briefingVisual" aria-label="Commander Vesper mission transmission">
             <span class="briefing-visual__signal" aria-hidden="true">INCOMING // SECURE CHANNEL</span>
-            <img src="./assets/commander-vesper-v1.png" alt="Commander Vesper, a strange moth-like creature wearing a flight command headset">
+            <img id="briefingFallback" src="./assets/commander-vesper-v1.png" alt="Commander Vesper, a strange moth-like creature wearing a flight command headset">
+            <canvas id="briefingCanvas" width="720" height="540" aria-label="Real-time 3D emergency transmission showing the fall of the world's defenses" hidden></canvas>
+            <div class="cinematic-slate" id="cinematicSlate" hidden>
+              <span id="cinematicSpeaker">Emergency broadcast</span>
+              <strong id="cinematicSubtitle">72 HOURS AFTER THE SKYFALL</strong>
+              <i><b id="cinematicProgress"></b></i>
+            </div>
             <figcaption>
-              <strong>Commander Vesper</strong>
-              <span>Species: Unknown</span>
+              <strong id="briefingIdentity">Commander Vesper</strong>
+              <span id="briefingChannel">Species: Unknown</span>
             </figcaption>
           </figure>
           <div class="briefing-copy">
@@ -124,7 +130,18 @@
             <h1 id="overlayTitle">Humanity has one pilot left.</h1>
             <p id="overlayText">Wingtail, listen carefully. A rogue terror fleet has seized the world's deadliest strike aircraft. Our defenses are gone. Cities are going dark.</p>
             <p class="briefing-order" id="briefingOrder">Your wings can slip their radar. Your banana missiles can break their formation. You are the only one who can save this planet.</p>
-            <button id="startButton" type="button">Accept Mission</button>
+            <div class="cinematic-dialogue" id="cinematicDialogue" hidden>
+              <small id="dialogueSpeaker">Commander Vesper</small>
+              <p id="dialogueSubtitle">Every human pilot is grounded. Unfortunately, that leaves you.</p>
+              <div class="dialogue-choices" id="dialogueChoices" role="group" aria-label="Choose Wingtail's response" hidden>
+                <button type="button" data-response="ready">I'm in.</button>
+                <button type="button" data-response="doubt">You're trusting a monkey?</button>
+              </div>
+            </div>
+            <div class="briefing-actions">
+              <button id="startButton" type="button">Start Transmission</button>
+              <button class="button--secondary" id="skipIntroButton" type="button" hidden>Skip Intro</button>
+            </div>
           </div>
         </div>
       </section>
@@ -247,6 +264,6 @@
     </main>
 
     <script src="./audio.js?v=3"></script>
-    <script src="./game.js?v=21"></script>
+    <script src="./game.js?v=22"></script>
   </body>
 </html>
