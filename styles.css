@@ -391,6 +391,124 @@ body {
   to { box-shadow: 0 0 24px rgba(255, 84, 43, 0.58); }
 }
 
+.objective-hud {
+  position: absolute;
+  top: 158px;
+  left: 50%;
+  z-index: 3;
+  width: min(320px, calc(100vw - 28px));
+  min-height: 32px;
+  display: grid;
+  grid-template-columns: auto minmax(72px, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 10px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(255, 79, 67, 0.62);
+  background: rgba(29, 7, 7, 0.9);
+  color: #ffb4a9;
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.objective-hud > i {
+  height: 6px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.objective-hud > i b {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: #ff5a48;
+  box-shadow: 0 0 12px rgba(255, 70, 52, 0.75);
+  transition: width 220ms ease;
+}
+
+.objective-hud strong {
+  color: #fff;
+  font-size: 9px;
+  letter-spacing: 0;
+}
+
+.victory-overlay {
+  z-index: 10;
+  overflow: hidden;
+  padding: 0;
+  background: #03080a;
+}
+
+#victoryCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.victory-copy {
+  position: absolute;
+  right: clamp(20px, 7vw, 96px);
+  bottom: clamp(24px, 8vh, 88px);
+  width: min(520px, calc(100vw - 40px));
+  color: #f5fbf8;
+  text-align: right;
+  text-shadow: 0 2px 12px #000;
+}
+
+.victory-copy > small {
+  display: block;
+  margin-top: 12px;
+  color: var(--signal);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+}
+
+.victory-copy h2 {
+  margin: 8px 0;
+  font-size: clamp(28px, 5vw, 60px);
+  line-height: 0.98;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.victory-copy p {
+  margin: 0 0 14px auto;
+  max-width: 460px;
+  color: #d7e3df;
+  font-size: clamp(14px, 1.8vw, 19px);
+  line-height: 1.45;
+}
+
+.victory-progress {
+  display: block;
+  width: min(360px, 100%);
+  height: 4px;
+  margin-left: auto;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.victory-progress b {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: var(--signal);
+}
+
+.victory-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
 .targeting-hud {
   position: absolute;
   z-index: 2;
@@ -1807,8 +1925,27 @@ button:focus-visible {
     width: min(286px, calc(100vw - 24px));
   }
 
+  .objective-hud {
+    top: 185px;
+    width: min(286px, calc(100vw - 24px));
+  }
+
+  .victory-copy {
+    right: 18px;
+    bottom: max(22px, env(safe-area-inset-bottom));
+    width: calc(100vw - 36px);
+  }
+
+  .victory-copy h2 {
+    font-size: 32px;
+  }
+
+  .victory-actions {
+    flex-wrap: wrap;
+  }
+
   .missile-warning {
-    top: max(184px, calc(env(safe-area-inset-top) + 172px));
+    top: max(225px, calc(env(safe-area-inset-top) + 213px));
   }
 
   .targeting-hud {
@@ -2120,12 +2257,17 @@ button:focus-visible {
     padding: 5px 8px;
   }
 
+  .objective-hud {
+    top: 126px;
+    width: min(250px, calc(100vw - 24px));
+  }
+
   .overlay__controls {
     display: none;
   }
 
   .missile-warning {
-    top: max(126px, calc(env(safe-area-inset-top) + 114px));
+    top: max(166px, calc(env(safe-area-inset-top) + 154px));
     width: min(266px, calc(100vw - 24px));
   }
 

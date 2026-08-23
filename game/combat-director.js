@@ -6,6 +6,7 @@ const DEFAULT_LEVELS = Object.freeze([
     baseAircraft: 2,
     maxAircraft: 3,
     maxMissiles: 1,
+    missileSalvo: 1,
     speedScale: 0.94,
     recovery: Object.freeze([3.1, 4.2]),
     warningLead: Object.freeze([2.2, 2.7]),
@@ -17,6 +18,7 @@ const DEFAULT_LEVELS = Object.freeze([
     baseAircraft: 2,
     maxAircraft: 4,
     maxMissiles: 1,
+    missileSalvo: 1,
     speedScale: 1.04,
     recovery: Object.freeze([2.6, 3.7]),
     warningLead: Object.freeze([1.9, 2.45]),
@@ -28,6 +30,7 @@ const DEFAULT_LEVELS = Object.freeze([
     baseAircraft: 3,
     maxAircraft: 5,
     maxMissiles: 2,
+    missileSalvo: 1,
     speedScale: 1.13,
     recovery: Object.freeze([2.2, 3.2]),
     warningLead: Object.freeze([1.55, 2.15]),
@@ -39,9 +42,58 @@ const DEFAULT_LEVELS = Object.freeze([
     baseAircraft: 3,
     maxAircraft: 6,
     maxMissiles: 3,
+    missileSalvo: 1,
     speedScale: 1.24,
     recovery: Object.freeze([1.8, 2.8]),
     warningLead: Object.freeze([1.25, 1.85]),
+  }),
+  Object.freeze({
+    id: "crossfire",
+    roster: Object.freeze(["f16", "fa18", "f22", "a10"]),
+    weights: Object.freeze({ formation: 16, intercept: 20, missileSortie: 44, flankingRun: 20 }),
+    baseAircraft: 3,
+    maxAircraft: 7,
+    maxMissiles: 4,
+    missileSalvo: 2,
+    speedScale: 1.3,
+    recovery: Object.freeze([1.65, 2.45]),
+    warningLead: Object.freeze([1.2, 1.72]),
+  }),
+  Object.freeze({
+    id: "tempest",
+    roster: Object.freeze(["f16", "fa18", "f22", "a10"]),
+    weights: Object.freeze({ formation: 13, intercept: 18, missileSortie: 49, flankingRun: 20 }),
+    baseAircraft: 4,
+    maxAircraft: 7,
+    maxMissiles: 5,
+    missileSalvo: 2,
+    speedScale: 1.36,
+    recovery: Object.freeze([1.55, 2.25]),
+    warningLead: Object.freeze([1.18, 1.62]),
+  }),
+  Object.freeze({
+    id: "killbox",
+    roster: Object.freeze(["f16", "fa18", "f22", "a10"]),
+    weights: Object.freeze({ formation: 10, intercept: 16, missileSortie: 54, flankingRun: 20 }),
+    baseAircraft: 4,
+    maxAircraft: 8,
+    maxMissiles: 6,
+    missileSalvo: 2,
+    speedScale: 1.42,
+    recovery: Object.freeze([1.45, 2.05]),
+    warningLead: Object.freeze([1.15, 1.55]),
+  }),
+  Object.freeze({
+    id: "last-stand",
+    roster: Object.freeze(["f16", "fa18", "f22", "a10"]),
+    weights: Object.freeze({ formation: 8, intercept: 14, missileSortie: 58, flankingRun: 20 }),
+    baseAircraft: 4,
+    maxAircraft: 8,
+    maxMissiles: 7,
+    missileSalvo: 3,
+    speedScale: 1.48,
+    recovery: Object.freeze([1.4, 1.9]),
+    warningLead: Object.freeze([1.15, 1.48]),
   }),
 ]);
 
@@ -441,8 +493,9 @@ export class CombatDirector {
       }
       duration = 5.1 + count * 0.7;
     } else if (type === ENCOUNTER_TYPES.MISSILE_SORTIE) {
-      const count = Math.min(capacity, this.levelIndex >= 3 && this.random() < 0.45 ? 2 : 1);
+      const count = Math.min(capacity, 1 + (this.levelIndex >= 3 ? 1 : 0) + (this.levelIndex >= 6 && this.random() < 0.55 ? 1 : 0));
       const missileSlots = Math.max(0, difficulty.maxMissiles - difficulty.activeMissiles);
+      let plannedMissiles = 0;
       for (let index = 0; index < count; index += 1) {
         const source = this.#aircraftPayload(encounterId, level, difficulty, {
           role: "missile-carrier",
@@ -453,18 +506,20 @@ export class CombatDirector {
           missileCarrier: true,
         });
         actions.push({ at: index * 1.05, kind: "aircraftSpawn", payload: source });
-        if (index < missileSlots) {
+        const salvo = Math.max(1, Math.floor(level.missileSalvo || 1));
+        for (let shot = 0; shot < salvo && plannedMissiles < missileSlots; shot += 1) {
           actions.push(...this.#missileActions(
             encounterId,
             source.entityId,
             level,
             difficulty,
-            2.1 + index * 1.1,
+            2.1 + index * 1.1 + shot * 0.78,
             source.lane === 0 ? "left" : source.lane === 2 ? "right" : "ahead",
           ));
+          plannedMissiles += 1;
         }
       }
-      duration = 6.4 + count * 0.8;
+      duration = 6.4 + count * 0.8 + Math.max(0, (level.missileSalvo || 1) - 1) * 0.78;
     } else {
       const count = Math.min(capacity, 2 + (this.levelIndex >= 3 && this.random() < 0.4 ? 1 : 0));
       const flankLanes = [0, 2, this.random() < 0.5 ? 0 : 2];

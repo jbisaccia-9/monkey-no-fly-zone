@@ -78,6 +78,11 @@
           <i role="progressbar" aria-label="Rage charge" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0"><b id="rageMeter"></b></i>
           <strong id="rageCount">0 / 10</strong>
         </button>
+        <div class="objective-hud" id="objectiveHud" aria-label="Command relay objective" hidden>
+          <span>Relay Hunt</span>
+          <i role="progressbar" aria-label="Command relays destroyed" aria-valuemin="0" aria-valuemax="3" aria-valuenow="0"><b id="objectiveMeter"></b></i>
+          <strong><b id="objectiveCount">3</b> remaining</strong>
+        </div>
       </section>
 
       <section class="targeting-hud" id="targetingHud" aria-label="Targeting status" aria-live="polite">
@@ -242,6 +247,30 @@
           <p>Vesper found a few parts that probably belong together.</p>
           <div class="upgrade-grid" id="upgradeGrid"></div>
           <span class="upgrade-wallet"><strong id="upgradeWallet">0</strong> coconuts secured</span>
+        </div>
+      </section>
+
+      <section
+        class="overlay victory-overlay"
+        id="victoryOverlay"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="victoryTitle"
+        aria-hidden="true"
+        hidden
+        inert
+      >
+        <canvas id="victoryCanvas" aria-label="3D victory transmission showing the command network collapse and humanity reclaiming the sky"></canvas>
+        <div class="victory-copy">
+          <span class="overlay__kicker">OPERATION BANANA SKY // COMPLETE</span>
+          <small id="victorySpeaker">Commander Vesper</small>
+          <h2 id="victoryTitle">The relays are down.</h2>
+          <p id="victorySubtitle">Skyshield is losing control of the stolen fleet.</p>
+          <i class="victory-progress" aria-hidden="true"><b id="victoryProgress"></b></i>
+          <div class="victory-actions">
+            <button class="button--secondary" id="victorySkipButton" type="button">Skip Finale</button>
+            <button id="victoryContinueButton" type="button" hidden>Return to Hangar</button>
+          </div>
         </div>
       </section>
 

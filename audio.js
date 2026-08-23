@@ -14,6 +14,10 @@
     { root: 49, harmonic: 73.5, windRate: 0.82, windHighpass: 120, windLowpass: 2050, bedGain: 0.019 },
     { root: 38, harmonic: 76, windRate: 0.98, windHighpass: 190, windLowpass: 3150, bedGain: 0.022 },
     { root: 32, harmonic: 48, windRate: 0.76, windHighpass: 95, windLowpass: 1800, bedGain: 0.026 },
+    { root: 36, harmonic: 54, windRate: 1.04, windHighpass: 175, windLowpass: 2860, bedGain: 0.024 },
+    { root: 29, harmonic: 58, windRate: 1.12, windHighpass: 210, windLowpass: 3400, bedGain: 0.027 },
+    { root: 34, harmonic: 51, windRate: 0.92, windHighpass: 135, windLowpass: 2280, bedGain: 0.029 },
+    { root: 26, harmonic: 39, windRate: 1.18, windHighpass: 225, windLowpass: 3600, bedGain: 0.032 },
   ]);
 
   let context = null;

@@ -15,7 +15,7 @@ test("release uses the MIT license", () => {
 
 test("3D source integrates every gameplay module", () => {
   const source = fs.readFileSync(path.join(root, "game-3d.source.js"), "utf8");
-  for (const moduleName of ["player-visual", "city-stream", "combat-director", "cinematic-director", "vfx"]) {
+  for (const moduleName of ["player-visual", "city-stream", "combat-director", "cinematic-director", "victory-director", "vfx"]) {
     assert.match(source, new RegExp(`\\./game/${moduleName}\\.js`));
   }
   assert.match(source, /event\.code === "Enter"[^\n]+fire\(\)/, "Enter should fire the player weapon");
@@ -28,6 +28,26 @@ test("3D source integrates every gameplay module", () => {
   assert.match(source, /fire\(true\)/, "rage should automatically fire heavy banana rockets");
   assert.match(source, /projectileCount = rageShot \? 1/, "rage should use a mobile-safe projectile budget");
   assert.match(source, /\{ time: 32, name: "INTERCEPT"/, "the first level should allow a longer opening patrol");
+  assert.match(source, /\{ time: 422, name: "LAST STAND"/, "the campaign should reach an eighth final theater");
+  assert.match(source, /crosswind: 3\.35/, "late levels should add meaningful crosswind pressure");
+  assert.match(source, /function startRelayObjective\(/, "the final level should deploy command relays");
+  assert.match(source, /function winGame\(/, "destroying the relays should produce a victory state");
+});
+
+test("late campaign escalates into the Skyshield command-core finale", () => {
+  const city = fs.readFileSync(path.join(root, "game", "city-stream.js"), "utf8");
+  const combat = fs.readFileSync(path.join(root, "game", "combat-director.js"), "utf8");
+  const victory = fs.readFileSync(path.join(root, "game", "victory-director.js"), "utf8");
+  for (const theme of ["frozen-transit-grid", "neon-arcology", "desert-fortress", "skyshield-command-core"]) {
+    assert.match(city, new RegExp(theme), `${theme} should have an authored city identity`);
+  }
+  assert.match(city, /const MAX_LEVEL = 7/);
+  assert.match(combat, /id: "last-stand"/);
+  assert.match(combat, /maxMissiles: 7/);
+  assert.match(combat, /missileSalvo: 3/);
+  assert.equal((victory.match(/\.\/assets\/voices\//g) || []).length, 3);
+  assert.match(victory, /Operation Banana Sky is complete/);
+  assert.match(victory, /const DURATION = 19\.7/, "the ending should preserve every recorded performance");
 });
 
 test("opening briefing establishes the mission", () => {

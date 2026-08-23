@@ -3,6 +3,7 @@ import * as PlayerVisual from "./game/player-visual.js";
 import { createCityStream } from "./game/city-stream.js";
 import { createCombatDirector } from "./game/combat-director.js";
 import { CINEMATIC_VOICE_ASSETS, createCinematicDirector } from "./game/cinematic-director.js";
+import { VICTORY_VOICE_ASSETS, createVictoryDirector } from "./game/victory-director.js";
 import {
   CATALOG,
   FIELD_UPGRADES,
@@ -56,6 +57,9 @@ import * as GameVFX from "./game/vfx.js";
   const rageLabel = document.getElementById("rageLabel");
   const rageCount = document.getElementById("rageCount");
   const rageMeter = document.getElementById("rageMeter");
+  const objectiveHud = document.getElementById("objectiveHud");
+  const objectiveMeter = document.getElementById("objectiveMeter");
+  const objectiveCount = document.getElementById("objectiveCount");
   const levelNode = document.getElementById("level");
   const threatBar = document.getElementById("threatBar");
   const missileWarning = document.getElementById("missileWarning");
@@ -98,6 +102,14 @@ import * as GameVFX from "./game/vfx.js";
   const upgradeTitle = document.getElementById("upgradeTitle");
   const upgradeGrid = document.getElementById("upgradeGrid");
   const upgradeWallet = document.getElementById("upgradeWallet");
+  const victoryOverlay = document.getElementById("victoryOverlay");
+  const victoryCanvas = document.getElementById("victoryCanvas");
+  const victorySpeaker = document.getElementById("victorySpeaker");
+  const victoryTitle = document.getElementById("victoryTitle");
+  const victorySubtitle = document.getElementById("victorySubtitle");
+  const victoryProgress = document.getElementById("victoryProgress");
+  const victorySkipButton = document.getElementById("victorySkipButton");
+  const victoryContinueButton = document.getElementById("victoryContinueButton");
   const audio = window.GameAudio || {};
 
   const FIXED_STEP = 1 / 60;
@@ -113,10 +125,14 @@ import * as GameVFX from "./game/vfx.js";
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   const LEVELS = [
-    { time: 0, name: "PATROL", threat: 20, spawn: 2.15, maxJets: 3, missileChance: 0.2, missileCap: 1, speed: 16, sky: 0x162c39, fog: 0x25424d, city: 0x263b43, lights: 0x58dfc1 },
-    { time: 32, name: "INTERCEPT", threat: 46, spawn: 1.82, maxJets: 4, missileChance: 0.38, missileCap: 1, speed: 18.5, sky: 0x392c33, fog: 0x62464a, city: 0x332f38, lights: 0xe8c454 },
-    { time: 72, name: "MISSILE LOCK", threat: 74, spawn: 1.55, maxJets: 5, missileChance: 0.56, missileCap: 2, speed: 21, sky: 0x17202c, fog: 0x353b4b, city: 0x202936, lights: 0xff704f },
-    { time: 122, name: "OVERDRIVE", threat: 100, spawn: 1.28, maxJets: 6, missileChance: 0.72, missileCap: 3, speed: 24, sky: 0x220f17, fog: 0x4a2227, city: 0x251a21, lights: 0xff4f38 },
+    { time: 0, name: "PATROL", threat: 20, maxJets: 3, missileCap: 1, speed: 16, hazard: "Clear airspace" },
+    { time: 32, name: "INTERCEPT", threat: 46, maxJets: 4, missileCap: 1, speed: 18.5, hazard: "Industrial turbulence" },
+    { time: 72, name: "MISSILE LOCK", threat: 74, maxJets: 5, missileCap: 2, speed: 21, crosswind: 0.7, hazard: "Storm crosswinds" },
+    { time: 122, name: "OVERDRIVE", threat: 100, maxJets: 6, missileCap: 3, speed: 24, crosswind: 1.15, hazard: "Ash and blackout conditions" },
+    { time: 182, name: "CROSSFIRE", threat: 100, maxJets: 7, missileCap: 4, speed: 26, crosswind: 1.65, altitudeMin: -3, altitudeMax: 5.55, hazard: "Freezing tower wake" },
+    { time: 252, name: "TEMPEST", threat: 100, maxJets: 7, missileCap: 5, speed: 27.5, crosswind: 2.15, altitudeMin: -2.85, altitudeMax: 5.35, hazard: "Electrical shear" },
+    { time: 332, name: "KILLBOX", threat: 100, maxJets: 8, missileCap: 6, speed: 29, crosswind: 2.75, altitudeMin: -2.65, altitudeMax: 5.1, hazard: "Fortress crossfire" },
+    { time: 422, name: "LAST STAND", threat: 100, maxJets: 8, missileCap: 7, speed: 30.5, crosswind: 3.35, altitudeMin: -2.45, altitudeMax: 4.85, hazard: "Command-core kill corridor" },
   ];
 
   const AIRCRAFT = {
@@ -128,9 +144,10 @@ import * as GameVFX from "./game/vfx.js";
 
   let renderer;
   let cinematic;
+  let victory;
   const cinematicVoice = new Audio();
   cinematicVoice.preload = "auto";
-  const cinematicVoicePreloads = CINEMATIC_VOICE_ASSETS.map((source) => {
+  const cinematicVoicePreloads = [...CINEMATIC_VOICE_ASSETS, ...VICTORY_VOICE_ASSETS].map((source) => {
     const voice = new Audio();
     voice.preload = "auto";
     voice.src = source;
@@ -180,6 +197,8 @@ import * as GameVFX from "./game/vfx.js";
   let rageReadyAnnounced = false;
   let pickupTimer = 2.4;
   let takedowns = 0;
+  let relayObjectiveStarted = false;
+  let relaysDestroyed = 0;
   let best = Number(localStorage.getItem("monkeyNoFlyBest3D") || localStorage.getItem("monkeyNoFlyBest") || 0);
 
   const monkey = { x: 0, y: 0.7, z: PLAYER_Z, vy: 0, vx: 0, lane: 1, bank: 0, pitch: 0, radius: PlayerVisual.PLAYER_COLLISION_RADIUS };
@@ -187,6 +206,7 @@ import * as GameVFX from "./game/vfx.js";
   const missiles = [];
   const shots = [];
   const pickups = [];
+  const commandRelays = [];
   const keys = new Set();
   const clockColor = new THREE.Color();
   const tempV = new THREE.Vector3();
@@ -580,6 +600,33 @@ import * as GameVFX from "./game/vfx.js";
     return group;
   }
 
+  function createCommandRelayView() {
+    const group = new THREE.Group();
+    const metal = makeMaterial(0x3b474d, { metalness: 0.82, roughness: 0.28 });
+    const armor = makeMaterial(0x69777c, { metalness: 0.72, roughness: 0.34 });
+    const signal = new THREE.MeshBasicMaterial({ color: 0xff3f35, transparent: true, opacity: 0.96 });
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.72, 1.05, 4.3, 10), metal);
+    group.add(body);
+    for (const y of [-1.25, 1.25]) {
+      const collar = new THREE.Mesh(new THREE.CylinderGeometry(1.08, 1.08, 0.3, 10), armor);
+      collar.position.y = y;
+      group.add(collar);
+    }
+    const core = new THREE.Mesh(new THREE.SphereGeometry(0.58, 14, 10), signal);
+    group.add(core);
+    const rings = [];
+    for (let index = 0; index < 3; index += 1) {
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(1.2 + index * 0.34, 0.065, 7, 42), signal);
+      ring.rotation.set(Math.PI / 2 + index * 0.32, index * 0.52, 0);
+      group.add(ring);
+      rings.push(ring);
+    }
+    const beacon = new THREE.PointLight(0xff3f35, 4.8, 12, 2);
+    group.add(beacon);
+    group.userData = { core, rings, beacon };
+    return group;
+  }
+
   function createShotView(weaponId = "ripe-repeater", rage = false) {
     const group = new THREE.Group();
     const plantain = weaponId === "plantain-piercer";
@@ -811,6 +858,7 @@ import * as GameVFX from "./game/vfx.js";
     camera.updateProjectionMatrix();
     PlayerVisual.setMobile(playerController, mobile);
     cinematic?.resize();
+    victory?.resize();
     document.body.classList.toggle("touch-controls-ready", mobile && matchMedia("(pointer: coarse)").matches);
     touchControls?.setAttribute("aria-hidden", String(!(mobile && matchMedia("(pointer: coarse)").matches)));
   }
@@ -945,6 +993,7 @@ import * as GameVFX from "./game/vfx.js";
     missiles.splice(0).forEach((item) => removeView(item.view));
     shots.splice(0).forEach((item) => removeView(item.view));
     pickups.splice(0).forEach((item) => removeView(item.view));
+    commandRelays.splice(0).forEach((item) => removeView(item.view));
     elapsed = 0;
     distance = 0;
     points = 0;
@@ -961,6 +1010,8 @@ import * as GameVFX from "./game/vfx.js";
     rageReadyAnnounced = false;
     pickupTimer = 2.4;
     takedowns = 0;
+    relayObjectiveStarted = false;
+    relaysDestroyed = 0;
     currentLevel = 0;
     seed = (Date.now() ^ 0x74ac31) >>> 0;
     cityStream?.setSeed(seed, { regenerate: true });
@@ -981,6 +1032,7 @@ import * as GameVFX from "./game/vfx.js";
     if (targetRange) targetRange.hidden = true;
     updateWeaponCooldown();
     updateRageHud();
+    updateObjectiveHud();
     setLevel(0, false);
   }
 
@@ -1028,6 +1080,15 @@ import * as GameVFX from "./game/vfx.js";
   function findAimTarget() {
     let target = null;
     let bestScore = Infinity;
+    for (const relay of commandRelays) {
+      if (relay.z > PLAYER_Z || relay.z < -115) continue;
+      const score = Math.hypot(relay.x - monkey.x, relay.y - monkey.y) * 0.72 + Math.abs(relay.z) * 0.012;
+      if (score < 9.8 && score < bestScore) {
+        target = relay;
+        bestScore = score;
+      }
+    }
+    if (target) return target;
     for (const jet of jets) {
       if (jet.z > PLAYER_Z || jet.z < -82) continue;
       const dx = jet.x - monkey.x;
@@ -1162,6 +1223,150 @@ import * as GameVFX from "./game/vfx.js";
     audio.playShot?.();
   }
 
+  function updateObjectiveHud() {
+    const remaining = Math.max(0, 3 - relaysDestroyed);
+    if (objectiveHud) objectiveHud.hidden = !relayObjectiveStarted || state === "victory" || state === "victory-result";
+    if (objectiveCount) objectiveCount.textContent = String(remaining);
+    objectiveMeter?.style.setProperty("width", `${Math.round((relaysDestroyed / 3) * 100)}%`);
+    objectiveMeter?.parentElement?.setAttribute("aria-valuenow", String(relaysDestroyed));
+  }
+
+  function startRelayObjective() {
+    if (relayObjectiveStarted || !scene) return;
+    relayObjectiveStarted = true;
+    relaysDestroyed = 0;
+    const lanes = [0, 2, 1];
+    const altitudes = [0.1, 2.15, -0.65];
+    for (let index = 0; index < 3; index += 1) {
+      const view = createCommandRelayView();
+      const relay = {
+        spec: { name: `COMMAND RELAY ${index + 1}` },
+        view,
+        hp: 8 + index * 2,
+        maxHp: 8 + index * 2,
+        lane: lanes[index],
+        x: LANES[lanes[index]],
+        y: altitudes[index],
+        z: -72 - index * 48,
+        phase: index * 2.1,
+        radius: 1.42,
+      };
+      view.position.set(relay.x, relay.y, relay.z);
+      scene.add(view);
+      commandRelays.push(relay);
+    }
+    updateObjectiveHud();
+    announce("Relay Hunt active. Destroy all three command relays to free the stolen fleet.");
+  }
+
+  function destroyCommandRelay(index) {
+    const relay = commandRelays[index];
+    if (!relay) return;
+    GameVFX.spawn(vfxManager, "explosion", { position: relay, count: 38, scale: 1.9, speed: 9, color: 0xff563d, impulse: 1.05 });
+    GameVFX.spawn(vfxManager, "hitFlash", { color: 0xffb13b, intensity: 0.78, impulse: 0.45 });
+    removeView(relay.view);
+    commandRelays.splice(index, 1);
+    relaysDestroyed += 1;
+    earnCoconuts(20);
+    addFury(3);
+    awardSkill("COMMAND RELAY DESTROYED", 2400);
+    audio.playJetDestroyed?.(clamp(relay.x / 8, -1, 1));
+    updateObjectiveHud();
+    if (relaysDestroyed >= 3) winGame();
+  }
+
+  function updateCommandRelays(dt) {
+    if (!relayObjectiveStarted) return;
+    const speed = LEVELS[currentLevel].speed * 0.43;
+    for (let index = commandRelays.length - 1; index >= 0; index -= 1) {
+      const relay = commandRelays[index];
+      relay.z += speed * dt;
+      relay.phase += dt;
+      relay.x = LANES[relay.lane] + Math.sin(relay.phase * 0.82) * 0.55;
+      relay.y += Math.sin(relay.phase * 1.13) * dt * 0.12;
+      relay.view.position.set(relay.x, relay.y, relay.z);
+      relay.view.rotation.y += dt * 0.34;
+      relay.view.userData.rings.forEach((ring, ringIndex) => { ring.rotation.z += dt * (0.9 + ringIndex * 0.25); });
+      relay.view.userData.core.scale.setScalar(0.9 + Math.sin(elapsed * 6 + relay.phase) * 0.12);
+      relay.view.userData.beacon.intensity = 3.8 + Math.sin(elapsed * 7 + relay.phase) * 1.2;
+      if (Math.abs(relay.z - monkey.z) < 1.6 && Math.hypot(relay.x - monkey.x, relay.y - monkey.y) < relay.radius + monkey.radius) {
+        if (!absorbHit("command relay collision", relay)) {
+          gameOver("command relay collision");
+          return;
+        }
+        relay.z = -112;
+      } else if (relay.z > 14) {
+        relay.z = -112 - index * 18;
+        relay.lane = (relay.lane + 1) % LANES.length;
+        announce(`${relay.spec.name} escaped the firing lane and is cycling back.`);
+      }
+    }
+  }
+
+  function handleVictoryCue(cue = {}) {
+    if (Number.isFinite(cue.progress)) victoryProgress?.style.setProperty("width", `${Math.round(cue.progress * 100)}%`);
+    if (cue.speaker) victorySpeaker.textContent = cue.speaker;
+    if (cue.text) victorySubtitle.textContent = cue.text;
+    if (cue.voice) playCinematicVoice(cue.voice);
+  }
+
+  function finishVictoryMontage() {
+    state = "victory-result";
+    stopCinematicVoice();
+    victoryTitle.textContent = "Humanity has its sky back.";
+    victorySubtitle.textContent = `All three relays destroyed. ${Math.floor(distance)} km survived, ${points.toLocaleString()} points scored, and ${runCoconuts} coconuts recovered.`;
+    victorySpeaker.textContent = "Mission accomplished";
+    victoryProgress?.style.setProperty("width", "100%");
+    victorySkipButton.hidden = true;
+    victoryContinueButton.hidden = false;
+    victoryContinueButton.focus({ preventScroll: true });
+    announce("Operation Banana Sky complete. Humanity is safe.");
+  }
+
+  function winGame() {
+    if (["victory", "victory-result"].includes(state)) return;
+    state = "victory";
+    commandRelays.splice(0).forEach((relay) => removeView(relay.view));
+    jets.splice(0).forEach((jet) => removeView(jet.view));
+    missiles.splice(0).forEach((missile) => removeView(missile.view));
+    combatDirector?.stop({ clearSchedule: true });
+    shootButton.disabled = true;
+    pauseButton.disabled = true;
+    if (liftButton) liftButton.disabled = true;
+    keys.clear();
+    updateObjectiveHud();
+    updateRageHud();
+    earnCoconuts(75);
+    audio.stopRun?.();
+    audio.setPaused?.(false);
+    victoryTitle.textContent = "The relays are down.";
+    victorySubtitle.textContent = "Skyshield is losing control of the stolen fleet.";
+    victorySpeaker.textContent = "Commander Vesper";
+    victoryProgress?.style.setProperty("width", "0%");
+    victorySkipButton.hidden = false;
+    victoryContinueButton.hidden = true;
+    setDialogVisible(victoryOverlay, true);
+    canvas.inert = true;
+    victory = createVictoryDirector({
+      canvas: victoryCanvas,
+      vesperAsset: "./assets/commander-vesper-v1.png",
+      wingtailAsset: "./assets/wingtail-hangar-front-v1.png",
+      reducedMotion,
+      onCue: handleVictoryCue,
+      onComplete: finishVictoryMontage,
+    });
+    victory?.start();
+  }
+
+  function closeVictory() {
+    stopCinematicVoice();
+    victory?.dispose();
+    victory = null;
+    setDialogVisible(victoryOverlay, false);
+    canvas.inert = false;
+    showHangar();
+  }
+
   function spawnPickup() {
     if (pickups.length >= 5) return;
     const type = simRandom() < 0.68 ? "coconut" : "banana";
@@ -1253,7 +1458,8 @@ import * as GameVFX from "./game/vfx.js";
       earnCoconuts(12 + index * 4);
       showFieldUpgrade(index);
     }
-    if (shouldAnnounce) announce(`Level ${index + 1}: ${level.name}. City sector changed.`);
+    if (shouldAnnounce && index === LEVELS.length - 1) startRelayObjective();
+    if (shouldAnnounce) announce(`Level ${index + 1}: ${level.name}. ${level.hazard}. City sector changed.`);
   }
 
   function updateLevel() {
@@ -1341,12 +1547,20 @@ import * as GameVFX from "./game/vfx.js";
   }
 
   function updateMonkey(dt) {
+    const level = LEVELS[currentLevel];
     const held = keys.has("Space") || keys.has("KeyW") || keys.has("ArrowUp") || keys.has("TouchLift");
     if (held) monkey.vy += 5.8 * runStats.lift * dt;
     monkey.vy = clamp(monkey.vy - 3.1 * dt, -3.6, 6.4 * runStats.lift);
+    if (level.crosswind) {
+      const gust = Math.sin(elapsed * 0.83 + currentLevel * 1.7) + Math.sin(elapsed * 2.17) * 0.42;
+      monkey.vx += gust * level.crosswind * dt;
+      monkey.vy += Math.cos(elapsed * 1.31 + currentLevel) * level.crosswind * 0.12 * dt;
+    }
     monkey.y += monkey.vy * dt;
-    if (monkey.y < ALTITUDE_MIN || monkey.y > ALTITUDE_MAX) {
-      monkey.y = clamp(monkey.y, ALTITUDE_MIN, ALTITUDE_MAX);
+    const altitudeMin = level.altitudeMin ?? ALTITUDE_MIN;
+    const altitudeMax = level.altitudeMax ?? ALTITUDE_MAX;
+    if (monkey.y < altitudeMin || monkey.y > altitudeMax) {
+      monkey.y = clamp(monkey.y, altitudeMin, altitudeMax);
       monkey.vy *= -0.15;
       cameraShake = Math.max(cameraShake, 0.08);
     }
@@ -1581,6 +1795,27 @@ import * as GameVFX from "./game/vfx.js";
         }
       }
       if (!consumed) {
+        for (let relayIndex = commandRelays.length - 1; relayIndex >= 0; relayIndex -= 1) {
+          const relay = commandRelays[relayIndex];
+          if (segmentDistance(new THREE.Vector3(relay.x, relay.y, relay.z), shot.previous, shot.view.position) < relay.radius) {
+            relay.hp -= shot.damage;
+            GameVFX.spawn(vfxManager, "explosion", {
+              position: relay,
+              count: relay.hp <= 0 ? 30 : 8,
+              scale: relay.hp <= 0 ? 1.6 : 0.42,
+              speed: relay.hp <= 0 ? 8 : 4.5,
+              color: relay.hp <= 0 ? 0xff563d : 0xffc35a,
+              impulse: relay.hp <= 0 ? 0.8 : 0.12,
+            });
+            relay.view.userData.core.material.opacity = clamp(relay.hp / relay.maxHp, 0.28, 1);
+            if (relay.hp <= 0) destroyCommandRelay(relayIndex);
+            else announce(`${relay.spec.name} integrity ${Math.max(0, Math.ceil((relay.hp / relay.maxHp) * 100))} percent.`);
+            consumed = true;
+            break;
+          }
+        }
+      }
+      if (!consumed) {
         for (let j = jets.length - 1; j >= 0; j -= 1) {
           const jet = jets[j];
           if (segmentDistance(new THREE.Vector3(jet.x, jet.y, jet.z), shot.previous, shot.view.position) < 1.05 * jet.spec.scale) {
@@ -1729,8 +1964,11 @@ import * as GameVFX from "./game/vfx.js";
     if (state !== "playing") return;
     updateMissiles(dt);
     if (state !== "playing") return;
+    updateCommandRelays(dt);
+    if (state !== "playing") return;
     updatePickups(dt);
     updateShots(dt);
+    if (state !== "playing") return;
     updateScenery(dt);
     updateCamera(dt);
     updateTargetingHud();
@@ -1869,6 +2107,8 @@ import * as GameVFX from "./game/vfx.js";
     if (choice) answerCinematic(choice.dataset.response);
   });
   deployButton?.addEventListener("click", startGame);
+  victorySkipButton?.addEventListener("click", () => victory?.skip());
+  victoryContinueButton?.addEventListener("click", closeVictory);
   loadoutAction?.addEventListener("click", () => {
     const item = getItem(hangarCategory, previewSelection[hangarCategory]);
     if (!item) return;
@@ -1914,22 +2154,30 @@ import * as GameVFX from "./game/vfx.js";
   window.addEventListener("blur", () => {
     if (state === "playing") pauseGame();
     cinematic?.setPaused(true);
+    victory?.setPaused(true);
     cinematicVoice.pause();
   });
   window.addEventListener("focus", () => {
     cinematic?.setPaused(false);
-    if (["cinematic", "dialogue"].includes(state) && cinematicVoice.src && !cinematicVoice.ended) cinematicVoice.play().catch(() => {});
+    victory?.setPaused(false);
+    if (["cinematic", "dialogue", "victory"].includes(state) && cinematicVoice.src && !cinematicVoice.ended) cinematicVoice.play().catch(() => {});
   });
   document.addEventListener("visibilitychange", () => {
     if (document.hidden && state === "playing") pauseGame();
     cinematic?.setPaused(document.hidden);
+    victory?.setPaused(document.hidden);
     if (document.hidden) cinematicVoice.pause();
-    else if (["cinematic", "dialogue"].includes(state) && cinematicVoice.src && !cinematicVoice.ended) cinematicVoice.play().catch(() => {});
+    else if (["cinematic", "dialogue", "victory"].includes(state) && cinematicVoice.src && !cinematicVoice.ended) cinematicVoice.play().catch(() => {});
   });
   window.addEventListener("keydown", (event) => {
     if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.code) || (state === "playing" && event.code === "Enter")) event.preventDefault();
     if (event.repeat && ["KeyA", "KeyD", "ArrowLeft", "ArrowRight"].includes(event.code)) return;
     keys.add(event.code);
+    if (state === "victory" && event.code === "Escape") {
+      event.preventDefault();
+      victory?.skip();
+      return;
+    }
     if (["cinematic", "dialogue"].includes(state) && event.code === "Escape") {
       event.preventDefault();
       skipCinematicSequence();
@@ -1968,7 +2216,7 @@ import * as GameVFX from "./game/vfx.js";
       update(FIXED_STEP);
       accumulator -= FIXED_STEP;
     }
-    if (renderer && scene && camera && state !== "paused" && !document.hidden) renderer.render(scene, camera);
+    if (renderer && scene && camera && !["paused", "victory", "victory-result"].includes(state) && !document.hidden) renderer.render(scene, camera);
     requestAnimationFrame(loop);
   }
 

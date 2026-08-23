@@ -5,13 +5,17 @@ const DEFAULT_BACKDROPS = [
   "./assets/skyline-level-2.jpg",
   "./assets/skyline-level-3.jpg",
   "./assets/skyline-level-4.jpg",
+  null,
+  null,
+  null,
+  null,
 ];
 
 const GROUND_Y = -5.32;
 const DEFAULT_BLOCK_COUNT = 18;
 const DEFAULT_BLOCK_SPACING = 11.5;
 const DEFAULT_CORRIDOR_HALF_WIDTH = 10.7;
-const MAX_LEVEL = 3;
+const MAX_LEVEL = 7;
 
 export const CITY_THEMES = Object.freeze([
   Object.freeze({
@@ -85,6 +89,78 @@ export const CITY_THEMES = Object.freeze([
     minHeight: 7,
     maxHeight: 21,
     density: 8,
+  }),
+  Object.freeze({
+    id: "frozen-transit-grid",
+    name: "Frozen Transit Grid",
+    sky: 0x294750,
+    fog: 0x78949a,
+    road: 0x182327,
+    sidewalk: 0x829397,
+    roof: 0x42565b,
+    metal: 0x8fa3a8,
+    marking: 0xd8f4f2,
+    light: 0x6ff7e8,
+    beacon: 0xffd454,
+    facade: [0x4d676c, 0x71878b, 0x36565e],
+    windows: [0xc8ffff, 0x75e7dd, 0xffe3a1],
+    minHeight: 8,
+    maxHeight: 23,
+    density: 9,
+  }),
+  Object.freeze({
+    id: "neon-arcology",
+    name: "Neon Arcology",
+    sky: 0x302d45,
+    fog: 0x55536a,
+    road: 0x11151d,
+    sidewalk: 0x4d5360,
+    roof: 0x242a35,
+    metal: 0x65717d,
+    marking: 0x8ef5d0,
+    light: 0x65ffca,
+    beacon: 0xff5c7a,
+    facade: [0x324350, 0x4b3f5b, 0x273b43],
+    windows: [0x6cffcf, 0xff6f96, 0xf2e77f],
+    minHeight: 12,
+    maxHeight: 29,
+    density: 10,
+  }),
+  Object.freeze({
+    id: "desert-fortress",
+    name: "Desert Fortress",
+    sky: 0x6d5844,
+    fog: 0x90765d,
+    road: 0x27221d,
+    sidewalk: 0x756b5d,
+    roof: 0x514a40,
+    metal: 0x766f64,
+    marking: 0xf0ce72,
+    light: 0xffd35f,
+    beacon: 0xff5440,
+    facade: [0x635c51, 0x4f5753, 0x756552],
+    windows: [0xffdf83, 0xff8450, 0xbce3c8],
+    minHeight: 6,
+    maxHeight: 18,
+    density: 8,
+  }),
+  Object.freeze({
+    id: "skyshield-command-core",
+    name: "Skyshield Command Core",
+    sky: 0x121b20,
+    fog: 0x364148,
+    road: 0x090d10,
+    sidewalk: 0x515a5f,
+    roof: 0x252d31,
+    metal: 0x7e8a8f,
+    marking: 0xe8edef,
+    light: 0xf4fbff,
+    beacon: 0xff342f,
+    facade: [0x3f494e, 0x26343b, 0x596267],
+    windows: [0xf2fbff, 0xff4b43, 0x7ed8ef],
+    minHeight: 14,
+    maxHeight: 34,
+    density: 10,
   }),
 ]);
 
@@ -290,7 +366,7 @@ function generateBlock(state, serial, level) {
     }
   }
 
-  const lotsPerSide = theme.density === 9 ? 5 : 4;
+  const lotsPerSide = theme.density >= 9 ? 5 : 4;
   for (const side of [-1, 1]) {
     for (let lot = 0; lot < lotsPerSide; lot += 1) {
       const row = lot % 2;
@@ -388,6 +464,34 @@ function generateBlock(state, serial, level) {
     for (const side of [-1, 1]) {
       const fireX = side * (corridor + range(random, 4.5, 10));
       addBox(block.lights, fireX, GROUND_Y + range(random, 1.2, 5), range(random, -4, 4), range(random, 0.35, 0.75), range(random, 0.6, 1.4), 0.35, { color: random() < 0.5 ? 0xff3d23 : 0xff9a35 });
+    }
+  }
+
+  if (level === 4 && serial % 3 === 1) {
+    addBox(block.metalBox, 0, GROUND_Y + 5.8, 0, corridor * 2 + 3, 0.32, 1.1, { color: theme.metal });
+    for (const side of [-1, 1]) addCylinder(block.metalCylinder, side * (corridor + 0.8), GROUND_Y + 2.9, 0, 0.18, 5.8, { color: theme.metal });
+  }
+
+  if (level === 5) {
+    for (const side of [-1, 1]) {
+      addBox(block.lights, side * (corridor + 2.2), GROUND_Y + 4.8 + (serial % 3), 0, 0.16, 5.5, 0.16, { color: serial % 2 ? theme.light : theme.beacon });
+    }
+  }
+
+  if (level === 6 && serial % 2 === 0) {
+    for (const side of [-1, 1]) {
+      const towerX = side * (corridor + 3.4);
+      addBox(block.metalBox, towerX, GROUND_Y + 3.2, 0, 2.4, 6.4, 2.4, { color: theme.metal });
+      addBox(block.lights, towerX, GROUND_Y + 6.55, 0, 0.3, 0.3, 0.3, { color: theme.beacon });
+    }
+  }
+
+  if (level === 7) {
+    const commandHeight = 9 + (serial % 4) * 2.2;
+    for (const side of [-1, 1]) {
+      const coreX = side * (corridor + 4.8 + (serial % 2) * 2.4);
+      addCylinder(block.metalCylinder, coreX, GROUND_Y + commandHeight / 2, 0, 0.7, commandHeight, { color: theme.metal });
+      addBox(block.lights, coreX, GROUND_Y + commandHeight, 0, 0.42, 0.42, 0.42, { color: theme.beacon });
     }
   }
 
@@ -638,7 +742,7 @@ export function createCityStream(options = {}) {
     environmentMix: 1,
     activeBackdropSlot: 0,
     backdropTokens: [0, 0],
-    backdropUrls: Array.isArray(options.backdropUrls) ? options.backdropUrls.slice(0, 4) : DEFAULT_BACKDROPS.slice(),
+    backdropUrls: Array.isArray(options.backdropUrls) ? options.backdropUrls.slice(0, CITY_THEMES.length) : DEFAULT_BACKDROPS.slice(),
     textureLoader: typeof document === "undefined" ? null : new THREE.TextureLoader(),
     onThemeMix: typeof options.onThemeMix === "function" ? options.onThemeMix : null,
     geometries: new Set(),

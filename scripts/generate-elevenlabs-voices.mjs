@@ -1,4 +1,4 @@
-import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -70,6 +70,9 @@ const lines = [
   ["12-why-bananas.mp3", "wingtail", "[curious pause, then genuine concern] One question. Why bananas?"],
   ["13-armory-response.mp3", "vesper", "[fond approval] That's the rescue ace I remember."],
   ["14-potassium.mp3", "vesper", "[perfectly dry] Because nobody has ever hacked potassium."],
+  ["15-relays-down.mp3", "vesper", "[relieved but still commanding, wonder beginning to break through] The relays are down. Skyshield is blind, and every stolen aircraft is returning to human control."],
+  ["16-wingtail-victory.mp3", "wingtail", "[breathless, proud, then playfully practical] Tell humanity the sky is open. And tell them to keep the fruit bowl stocked."],
+  ["17-sky-restored.mp3", "vesper", "[warm, deeply proud, allowing herself a small smile] Operation Banana Sky is complete. Welcome home, Wingtail."],
 ];
 
 async function eleven(path, options = {}) {
@@ -140,9 +143,22 @@ for (const [role, config] of Object.entries(cast)) {
 
 await rm(stagingDir, { recursive: true, force: true });
 await mkdir(stagingDir, { recursive: true });
+const missingOnly = process.argv.includes("--missing-only");
+const renderLines = [];
+for (const line of lines) {
+  if (!missingOnly) {
+    renderLines.push(line);
+    continue;
+  }
+  try {
+    await access(join(outputDir, line[0]));
+  } catch {
+    renderLines.push(line);
+  }
+}
 
 try {
-  for (const [file, role, text] of lines) {
+  for (const [file, role, text] of renderLines) {
     process.stdout.write(`Rendering ${file}...\n`);
     const response = await eleven(
       `/v1/text-to-speech/${voiceState[role]}?output_format=mp3_44100_128`,
@@ -163,8 +179,8 @@ try {
   }
 
   await mkdir(outputDir, { recursive: true });
-  for (const [file] of lines) await rename(join(stagingDir, file), join(outputDir, file));
-  process.stdout.write(`Generated ${lines.length} cinematic performances in ${outputDir}\n`);
+  for (const [file] of renderLines) await rename(join(stagingDir, file), join(outputDir, file));
+  process.stdout.write(`Generated ${renderLines.length} cinematic performances in ${outputDir}\n`);
 } finally {
   await rm(stagingDir, { recursive: true, force: true });
 }

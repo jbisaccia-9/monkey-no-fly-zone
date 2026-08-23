@@ -11,6 +11,10 @@ const LEVEL_WEATHER = Object.freeze([
   { kind: "dust", color: 0xe5b56c, density: 0.36, speed: 1.9, drift: 1.1, size: 0.2, opacity: 0.26 },
   { kind: "rain", color: 0x9fc8d9, density: 1, speed: 24, drift: 4.8, size: 0.26, opacity: 0.46 },
   { kind: "ash", color: 0xff805e, density: 0.58, speed: 1.4, drift: 1.8, size: 0.24, opacity: 0.35 },
+  { kind: "snow", color: 0xc9ffff, density: 0.72, speed: 2.2, drift: 2.8, size: 0.2, opacity: 0.42 },
+  { kind: "rain", color: 0x79ffd3, density: 0.86, speed: 29, drift: 6.2, size: 0.24, opacity: 0.42 },
+  { kind: "dust", color: 0xf2bf72, density: 0.88, speed: 3.2, drift: 5.4, size: 0.25, opacity: 0.38 },
+  { kind: "ash", color: 0xf5fbff, density: 0.68, speed: 2.5, drift: 4.2, size: 0.18, opacity: 0.44 },
 ]);
 
 const CAPACITY = Object.freeze({
