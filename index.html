@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#071014">
+    <title>Monkey No-Fly Zone 3D</title>
+    <link rel="stylesheet" href="./styles.css?v=9">
+  </head>
+  <body>
+    <main class="shell" aria-label="Monkey No-Fly Zone game">
+      <canvas id="game" width="960" height="540" aria-label="3D survival flight game. Guide the monkey through hostile airspace, dodge aircraft and missiles, and return fire."></canvas>
+
+      <section class="hud" aria-label="Flight status">
+        <div class="hud__identity">
+          <span class="hud__eyebrow">3D SURVIVAL FLIGHT</span>
+          <span class="hud__title">Monkey No-Fly Zone</span>
+        </div>
+        <div class="hud__center">
+          <span class="hud__level" id="level">LEVEL 1 · PATROL</span>
+          <span class="threat" role="progressbar" aria-label="Threat level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="20"><i id="threatBar"></i></span>
+        </div>
+        <div class="hud__stats">
+          <span>Distance <strong id="score">0</strong><small> km</small></span>
+          <span>Record <strong id="best">0</strong><small> km</small></span>
+        </div>
+        <div class="hud__actions" aria-label="Game controls">
+          <button
+            class="icon-button"
+            id="muteButton"
+            type="button"
+            aria-label="Mute sound"
+            aria-pressed="false"
+            title="Mute sound"
+          >
+            <span aria-hidden="true">&#128266;</span>
+          </button>
+          <button
+            class="icon-button"
+            id="pauseButton"
+            type="button"
+            aria-label="Pause game"
+            aria-controls="pauseOverlay"
+            title="Pause game"
+          >
+            <span class="pause-icon" aria-hidden="true"></span>
+          </button>
+          <button
+            class="icon-button fire-button"
+            id="shootButton"
+            type="button"
+            aria-label="Fire banana pulse"
+            title="Fire banana pulse (X or F)"
+            disabled
+          >
+            <span class="fire-button__reticle" aria-hidden="true"></span>
+            <span
+              class="fire-button__cooldown"
+              id="weaponCooldown"
+              role="progressbar"
+              aria-label="Weapon charge"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-valuenow="100"
+            ></span>
+          </button>
+        </div>
+        <div class="skill-hud" aria-label="Skill score">
+          <span>Points <strong id="points">0</strong></span>
+          <span>Chain <strong id="multiplier">x1</strong></span>
+        </div>
+      </section>
+
+      <section class="targeting-hud" id="targetingHud" aria-label="Targeting status" aria-live="polite">
+        <span class="targeting-hud__brackets" aria-hidden="true"></span>
+        <span class="targeting-hud__state" id="targetStatus">Scanning</span>
+        <span class="targeting-hud__range" id="targetRange" hidden></span>
+      </section>
+
+      <div class="missile-warning" id="missileWarning" role="alert" aria-live="assertive" hidden>
+        <span class="missile-warning__bearing" id="missileBearing" aria-hidden="true"></span>
+        <span class="missile-warning__copy">
+          <strong class="missile-warning__label">Missile lock</strong>
+          <small class="missile-warning__direction" id="missileDirection">Incoming</small>
+        </span>
+        <span class="lock-track">
+          <i
+            id="lockMeter"
+            role="progressbar"
+            aria-label="Missile lock progress"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
+          ></i>
+        </span>
+      </div>
+
+      <section class="touch-controls" id="touchControls" aria-label="Touch flight controls" aria-hidden="true">
+        <div class="touch-zone touch-zone--steer" id="steerZone" data-control="steer">
+          <span class="touch-zone__marker" aria-hidden="true"></span>
+          <span class="sr-only">Drag to steer</span>
+        </div>
+        <button class="touch-zone touch-zone--lift" id="liftButton" type="button" data-control="lift" aria-label="Lift" disabled>
+          <span class="touch-zone__lift-icon" aria-hidden="true"></span>
+        </button>
+      </section>
+
+      <section class="overlay is-visible" id="overlay" aria-live="polite">
+        <div class="overlay__panel">
+          <span class="overlay__kicker">OPERATION: BANANA SKY</span>
+          <h1 id="overlayTitle">Survive the no-fly zone.</h1>
+          <p id="overlayText">Break the formation. Dodge the lock. Own the sky.</p>
+          <button id="startButton" type="button">Begin Flight</button>
+        </div>
+      </section>
+
+      <section
+        class="overlay pause-overlay"
+        id="pauseOverlay"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pauseTitle"
+        aria-hidden="true"
+        hidden
+        inert
+      >
+        <div class="overlay__panel pause-overlay__panel">
+          <span class="overlay__kicker">Flight suspended</span>
+          <h2 id="pauseTitle">Paused</h2>
+          <p>Take a breath. Your run is waiting.</p>
+          <div class="pause-overlay__actions">
+            <button id="resumeButton" type="button">Resume</button>
+            <button class="button--secondary" id="restartButton" type="button">Restart</button>
+          </div>
+        </div>
+      </section>
+
+      <p class="sr-only" id="statusRegion" role="status" aria-live="polite" aria-atomic="true"></p>
+    </main>
+
+    <script src="./audio.js?v=3"></script>
+    <script src="./game.js?v=15"></script>
+  </body>
+</html>
