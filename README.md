@@ -26,7 +26,7 @@ Then visit `http://localhost:8080`.
 ## Current 3D Edition
 
 - Cinematic Commander Vesper briefing that launches Operation: Banana Sky
-- Interactive 12-second real-time Three.js prologue with a city blackout, fighter attack, Vesper transmission, frontal Wingtail response, local character speech, dialogue choices, subtitles, and Skip Intro
+- Interactive 14-second real-time Three.js prologue that explains the defense-network hijack, human-pilot lockout, and Wingtail's analog blind-spot advantage through a global threat display, city attack, Vesper transmission, frontal response, local character speech, dialogue choices, subtitles, telemetry, and Skip Intro
 - Full-frontal Wingtail armory with flight rigs, banana weapons, clothing, live specs, and 120 starting coconuts
 - Seven authored equipment portraits with matched pose, anatomy, perspective, lighting, and materials for turbines, glider surfaces, mounted banana payloads, jackets, and stealth armor
 - Inspect-before-buy equipment cards with plain-English tactical effects, cost, current balance, affordability, and coconut shortfall
@@ -67,7 +67,7 @@ npm run build
 npm test
 ```
 
-The build produces `game.js`, embeds every referenced image into `monkey-no-fly-zone-standalone.html`, and verifies 70 required DOM hooks plus bundle integrity. The current release bundles nine modules into 645.9 KB, passes eight automated tests across the source and standalone release, and ships as a self-contained 16.98 MB HTML game.
+The build produces `game.js`, embeds every referenced image into `monkey-no-fly-zone-standalone.html`, and verifies 71 required DOM hooks plus bundle integrity. The current release bundles nine modules into 648.4 KB, passes eight automated tests across the source and standalone release, and ships as a self-contained 16.99 MB HTML game.
 
 ## Project Layout
 

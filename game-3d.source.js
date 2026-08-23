@@ -32,6 +32,7 @@ import * as GameVFX from "./game/vfx.js";
   const cinematicSpeaker = document.getElementById("cinematicSpeaker");
   const cinematicSubtitle = document.getElementById("cinematicSubtitle");
   const cinematicProgress = document.getElementById("cinematicProgress");
+  const cinematicTelemetry = document.getElementById("cinematicTelemetry");
   const cinematicDialogue = document.getElementById("cinematicDialogue");
   const dialogueSpeaker = document.getElementById("dialogueSpeaker");
   const dialogueSubtitle = document.getElementById("dialogueSubtitle");
@@ -747,8 +748,21 @@ import * as GameVFX from "./game/vfx.js";
       cinematicSubtitle.textContent = cue.text;
       dialogueSubtitle.textContent = cue.text;
     }
+    if (Array.isArray(cue.telemetry) && cinematicTelemetry) {
+      cinematicTelemetry.replaceChildren(...cue.telemetry.map((entry) => {
+        const row = document.createElement("span");
+        const [label, status = ""] = entry.split(" // ");
+        row.append(document.createTextNode(label));
+        const value = document.createElement("strong");
+        value.textContent = status;
+        row.append(value);
+        return row;
+      }));
+      cinematicTelemetry.hidden = false;
+      cinematicTelemetry.setAttribute("aria-hidden", "false");
+    }
     if (cue.speaker && cue.text) speakCinematicLine(cue.speaker, cue.text);
-    if (cue.speaker === "Global Defense Network") audio.playMissileLaunch?.();
+    if (cue.speaker === "Skyshield command") audio.playMissileLaunch?.();
     else if (cue.speaker === "Evacuation channel") audio.playImpact?.(true);
     else if (cue.speaker === "Commander Vesper") audio.playLevel?.();
   }
@@ -789,6 +803,7 @@ import * as GameVFX from "./game/vfx.js";
     briefingOrder.hidden = true;
     briefingFallback.hidden = true;
     cinematicSlate.hidden = false;
+    cinematicTelemetry.hidden = false;
     cinematicDialogue.hidden = false;
     dialogueChoices.hidden = true;
     startButton.hidden = true;
@@ -829,6 +844,7 @@ import * as GameVFX from "./game/vfx.js";
     cinematic?.dispose();
     cinematic = null;
     cinematicSlate.hidden = true;
+    cinematicTelemetry.hidden = true;
     cinematicDialogue.hidden = true;
     skipIntroButton.hidden = true;
     showHangar();

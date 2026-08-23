@@ -17,6 +17,7 @@ test("3D source integrates every gameplay module", () => {
 
 test("opening briefing establishes the mission", () => {
   const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
+  const cinematic = fs.readFileSync(path.join(root, "game", "cinematic-director.js"), "utf8");
   assert.match(html, /<title>Monkey See, Monkey Pew<\/title>/);
   assert.match(html, /Commander Vesper/);
   assert.match(html, /only one who can save this planet/i);
@@ -24,6 +25,11 @@ test("opening briefing establishes the mission", () => {
   assert.match(html, /Start Transmission/);
   assert.match(html, /Real-time 3D emergency transmission/);
   assert.match(html, /You're trusting a monkey\?/);
+  assert.match(cinematic, /rogue cell seized the world's autonomous strike network/i);
+  assert.match(cinematic, /every human pilot and networked aircraft was locked out/i);
+  assert.match(cinematic, /wings are analog/i);
+  assert.match(cinematic, /bananas cannot be hacked/i);
+  assert.match(cinematic, /only pilot their system was never taught to recognize/i);
 });
 
 test("hangar economy purchases and equips persistent loadouts", async () => {

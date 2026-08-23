@@ -582,6 +582,39 @@ body {
   transition: width 80ms linear;
 }
 
+.cinematic-telemetry {
+  position: absolute;
+  z-index: 4;
+  top: 46px;
+  right: 12px;
+  display: grid;
+  width: min(48%, 290px);
+  gap: 5px;
+  pointer-events: none;
+}
+
+.cinematic-telemetry span {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 6px 8px;
+  border-right: 2px solid rgba(255, 73, 62, 0.9);
+  background: rgba(2, 8, 11, 0.78);
+  color: rgba(232, 245, 243, 0.82);
+  font-size: 7px;
+  font-weight: 750;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  backdrop-filter: blur(5px);
+}
+
+.cinematic-telemetry strong {
+  color: #ff7066;
+  font-size: inherit;
+  letter-spacing: inherit;
+  text-align: right;
+}
+
 .briefing-visual__signal {
   position: absolute;
   z-index: 3;
@@ -2339,6 +2372,17 @@ body.high-contrast .touch-zone__marker {
     bottom: 50px;
     left: 8px;
     padding: 8px 9px;
+  }
+
+  .cinematic-telemetry {
+    top: 40px;
+    right: 8px;
+    width: min(65%, 250px);
+  }
+
+  .cinematic-telemetry span {
+    padding: 5px 6px;
+    font-size: 6px;
   }
 
   .cinematic-dialogue {

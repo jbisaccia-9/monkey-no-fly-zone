@@ -15,6 +15,7 @@ const REQUIRED_IDS = [
   "cinematicSpeaker",
   "cinematicSubtitle",
   "cinematicProgress",
+  "cinematicTelemetry",
   "cinematicDialogue",
   "dialogueSpeaker",
   "dialogueSubtitle",

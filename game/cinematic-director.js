@@ -1,6 +1,6 @@
 import * as THREE from "../vendor/three.module.min.js";
 
-const DURATION = 12;
+const DURATION = 14;
 
 function ease(value) {
   const t = Math.max(0, Math.min(1, value));
@@ -63,6 +63,47 @@ function loadPortrait(url) {
   return { mesh, texture, material };
 }
 
+function makeThreatGlobe() {
+  const group = new THREE.Group();
+  const shell = new THREE.Mesh(
+    new THREE.SphereGeometry(2.25, 24, 16),
+    new THREE.MeshBasicMaterial({ color: 0x48d8d0, wireframe: true, transparent: true, opacity: 0.38 }),
+  );
+  group.add(shell);
+
+  const orbitMaterial = new THREE.MeshBasicMaterial({ color: 0xff463d, transparent: true, opacity: 0.8 });
+  [0, 1, 2].forEach((index) => {
+    const orbit = new THREE.Mesh(new THREE.TorusGeometry(3 + index * 0.18, 0.018, 5, 72), orbitMaterial);
+    orbit.rotation.set(Math.PI * (0.18 + index * 0.19), Math.PI * (0.1 + index * 0.24), 0);
+    group.add(orbit);
+  });
+
+  const nodeMaterial = new THREE.MeshBasicMaterial({ color: 0xff5c48 });
+  const nodePositions = [
+    [-1.4, 1.2, 1.3], [1.6, 0.65, 1.25], [0.5, -1.65, 1.3], [-1.7, -0.7, -1.15], [1.35, 1.45, -1.15],
+  ];
+  nodePositions.forEach((position) => {
+    const node = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), nodeMaterial);
+    node.position.set(...position);
+    group.add(node);
+  });
+  group.position.set(0, 1.25, -5.5);
+  group.userData.shell = shell;
+  return group;
+}
+
+function makeLockout() {
+  const group = new THREE.Group();
+  const material = new THREE.MeshBasicMaterial({ color: 0xff3d36, transparent: true, opacity: 0.72 });
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(1.65, 0.075, 8, 48), material);
+  const slash = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.14, 0.08), material);
+  slash.rotation.z = -Math.PI / 4;
+  group.add(ring, slash);
+  group.position.set(0, 1.3, -4.4);
+  group.visible = false;
+  return group;
+}
+
 export function createCinematicDirector({
   canvas,
   vesperAsset,
@@ -84,6 +125,9 @@ export function createCinematicDirector({
   const camera = new THREE.PerspectiveCamera(52, 1, 0.1, 140);
   const city = makeCity();
   scene.add(city);
+  const threatGlobe = makeThreatGlobe();
+  const lockout = makeLockout();
+  scene.add(threatGlobe, lockout);
 
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(30, 120),
@@ -142,11 +186,42 @@ export function createCinematicDirector({
   let lastCue = -1;
 
   const cues = [
-    [0, "Emergency broadcast", "72 HOURS AFTER THE SKYFALL"],
-    [2, "Global Defense Network", "The first wave took the radar grid in eleven minutes."],
-    [5, "Evacuation channel", "Then the cities went dark, one sector at a time."],
-    [8, "Commander Vesper", "Wingtail, every human pilot is grounded."],
-    [10, "Commander Vesper", "Unfortunately for military doctrine, that leaves you."],
+    {
+      at: 0,
+      speaker: "Emergency broadcast",
+      text: "A rogue cell seized the world's autonomous strike network.",
+      telemetry: ["STRIKE NETWORK // HIJACKED", "GLOBAL COMMAND // LOST"],
+    },
+    {
+      at: 2.8,
+      speaker: "Skyshield command",
+      text: "They rewrote its identification system. Our own fighters turned on every city still resisting.",
+      telemetry: ["IFF DATABASE // REWRITTEN", "DEFENSE FLEET // HOSTILE"],
+    },
+    {
+      at: 5.7,
+      speaker: "Evacuation channel",
+      text: "Every human pilot and networked aircraft was locked out of the sky.",
+      telemetry: ["HUMAN PILOTS // LOCKED OUT", "DIGITAL FLIGHT SYSTEMS // COMPROMISED"],
+    },
+    {
+      at: 7.6,
+      speaker: "Commander Vesper",
+      text: "Their targeting model knows every human face, aircraft, and weapon on Earth.",
+      telemetry: ["ENEMY TARGET MODEL // HUMAN", "KNOWN AIRCRAFT // TRACKED"],
+    },
+    {
+      at: 10.1,
+      speaker: "Commander Vesper",
+      text: "But it has no record of you. Your biology is unknown, your wings are analog, and your bananas cannot be hacked.",
+      telemetry: ["BIO-SIGNATURE // UNKNOWN", "FLIGHT SYSTEM // ANALOG", "ORDNANCE // UNHACKABLE"],
+    },
+    {
+      at: 12.6,
+      speaker: "Commander Vesper",
+      text: "Wingtail, you are the one blind spot left in their sky. Will you fly?",
+      telemetry: ["MISSION CANDIDATE // WINGTAIL", "SURVIVAL PROBABILITY // CLASSIFIED"],
+    },
   ];
 
   function resize() {
@@ -161,6 +236,8 @@ export function createCinematicDirector({
   }
 
   function showPortrait(subject) {
+    threatGlobe.visible = false;
+    lockout.visible = false;
     city.visible = false;
     ground.visible = false;
     jets.forEach((jet) => { jet.visible = false; });
@@ -174,39 +251,61 @@ export function createCinematicDirector({
   function updateCue(time) {
     let cueIndex = 0;
     for (let index = 0; index < cues.length; index += 1) {
-      if (time >= cues[index][0]) cueIndex = index;
+      if (time >= cues[index].at) cueIndex = index;
     }
     if (cueIndex !== lastCue) {
       lastCue = cueIndex;
-      onCue({ speaker: cues[cueIndex][1], text: cues[cueIndex][2], progress: time / DURATION });
+      onCue({ ...cues[cueIndex], progress: time / DURATION });
     }
   }
 
   function updateScene(time) {
     updateCue(time);
-    if (time < 8) {
-      city.visible = true;
-      ground.visible = true;
+    if (time < 2.8) {
+      threatGlobe.visible = true;
+      lockout.visible = false;
+      city.visible = false;
+      ground.visible = false;
+      jets.forEach((jet) => { jet.visible = false; });
       frame.visible = false;
       vesper.mesh.visible = false;
       wingtail.mesh.visible = false;
-      const pathTime = reducedMotion ? Math.floor(time / 2) / 4 : ease(time / 8);
+      camera.position.set(0, 1.4, 2.4);
+      camera.lookAt(0, 1.25, -5.5);
+      threatGlobe.rotation.y = time * (reducedMotion ? 0.08 : 0.28);
+      threatGlobe.rotation.x = Math.sin(time * 0.55) * 0.08;
+      threatGlobe.userData.shell.material.color.setHex(time > 1.5 ? 0xff4b42 : 0x48d8d0);
+      warning.intensity = ease((time - 1.2) / 1.3) * 4;
+    } else if (time < 7.6) {
+      threatGlobe.visible = false;
+      city.visible = true;
+      ground.visible = true;
+      lockout.visible = time >= 5.7;
+      frame.visible = false;
+      vesper.mesh.visible = false;
+      wingtail.mesh.visible = false;
+      const cityTime = time - 2.8;
+      const pathTime = reducedMotion ? Math.floor(cityTime / 1.2) / 4 : ease(cityTime / 4.8);
       camera.position.copy(path.getPoint(Math.min(0.98, pathTime)));
       target.set(0, 1.1, camera.position.z - 13);
       camera.lookAt(target);
       jets.forEach((jet, index) => {
-        jet.visible = time >= 2.2;
-        jet.position.x = -9 - index * 2.2 + Math.max(0, time - 2.2) * (4.8 + index * 0.35);
+        jet.visible = true;
+        jet.position.x = -9 - index * 2.2 + cityTime * (4.8 + index * 0.35);
         jet.position.y += Math.sin(time * 2.2 + index) * 0.002;
       });
-      const blackout = ease((time - 4.7) / 2.1);
+      const blackout = ease((time - 4.4) / 2.1);
       city.userData.material.emissiveIntensity = 0.44 * (1 - blackout) + 0.035;
       warning.intensity = blackout * 7;
-      const blastTime = Math.max(0, Math.min(1, (time - 5.4) / 1.2));
+      const blastTime = Math.max(0, Math.min(1, (time - 4.8) / 1.2));
       blast.material.opacity = Math.sin(blastTime * Math.PI) * 0.88;
       blast.scale.setScalar(1 + blastTime * 6);
+      if (lockout.visible) {
+        lockout.rotation.z = reducedMotion ? 0 : Math.sin(time * 4) * 0.025;
+        lockout.scale.setScalar(0.92 + ease((time - 5.7) / 0.5) * 0.08);
+      }
     } else {
-      showPortrait(time < DURATION ? "vesper" : "wingtail");
+      showPortrait(time < 10.1 ? "vesper" : "wingtail");
       const pulse = 1 + Math.sin(time * 3.4) * 0.006;
       (vesper.mesh.visible ? vesper.mesh : wingtail.mesh).scale.setScalar(reducedMotion ? 1 : pulse);
     }
@@ -251,14 +350,16 @@ export function createCinematicDirector({
     showPortrait("wingtail");
     onCue({
       speaker: "Wingtail",
-      text: choice === "doubt" ? "You are trusting a monkey with the last airworthy wings?" : "Open the armory. I will bring the sky back.",
+      text: choice === "doubt" ? "I am the plan because I am not human?" : "Their system cannot track me. Open the armory.",
+      telemetry: ["WINGTAIL // MISSION ACCEPTANCE PENDING"],
       progress: 1,
     });
     const first = setTimeout(() => {
       showPortrait("vesper");
       onCue({
         speaker: "Commander Vesper",
-        text: choice === "doubt" ? "No. I am trusting the bananas. You are their delivery system." : "That is either courage or a complete lack of risk assessment.",
+        text: choice === "doubt" ? "You are the only pilot their system was never taught to recognize." : "Exactly. Stay off their network and make every banana count.",
+        telemetry: ["OPERATION BANANA SKY // AUTHORIZED"],
         progress: 1,
       });
     }, 1500);
