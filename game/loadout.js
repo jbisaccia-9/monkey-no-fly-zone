@@ -217,6 +217,13 @@ export function ensureLaunchBudget(profile, minimum = 120, storage = globalThis.
   return granted;
 }
 
+export function resetLaunchBudget(profile, amount = 120, storage = globalThis.localStorage) {
+  const budget = Math.max(0, Math.floor(Number(amount) || 0));
+  profile.coconuts = budget;
+  saveProfile(profile, storage);
+  return budget;
+}
+
 export function createRunUpgrades() {
   return { flight: 0, arsenal: 0, armor: 0 };
 }

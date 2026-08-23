@@ -10,7 +10,7 @@ import {
   awardCoconuts,
   createRunUpgrades,
   displayStats,
-  ensureLaunchBudget,
+  resetLaunchBudget,
   getItem,
   loadProfile,
   purchaseOrEquip,
@@ -54,6 +54,7 @@ import * as GameVFX from "./game/vfx.js";
   const coconutCount = document.getElementById("coconutCount");
   const shieldCount = document.getElementById("shieldCount");
   const rageHud = document.getElementById("rageHud");
+  const rageActionButton = document.getElementById("rageActionButton");
   const rageLabel = document.getElementById("rageLabel");
   const rageCount = document.getElementById("rageCount");
   const rageMeter = document.getElementById("rageMeter");
@@ -147,6 +148,9 @@ import * as GameVFX from "./game/vfx.js";
   let victory;
   const cinematicVoice = new Audio();
   cinematicVoice.preload = "auto";
+  let cinematicVoiceActive = false;
+  cinematicVoice.addEventListener("ended", () => { cinematicVoiceActive = false; });
+  cinematicVoice.addEventListener("error", () => { cinematicVoiceActive = false; });
   const cinematicVoicePreloads = [...CINEMATIC_VOICE_ASSETS, ...VICTORY_VOICE_ASSETS].map((source) => {
     const voice = new Audio();
     voice.preload = "auto";
@@ -186,6 +190,7 @@ import * as GameVFX from "./game/vfx.js";
   let mobileMode = false;
   let hangarCategory = "airframe";
   let profile = loadProfile();
+  resetLaunchBudget(profile, LAUNCH_BUDGET);
   let previewSelection = { ...profile.equipped };
   let runUpgrades = createRunUpgrades();
   let runStats = resolveRunStats(profile, runUpgrades);
@@ -427,13 +432,11 @@ import * as GameVFX from "./game/vfx.js";
     setOverlayVisible(false);
     setDialogVisible(upgradeOverlay, false);
     setDialogVisible(hangarOverlay, true);
-    const stipend = ensureLaunchBudget(profile, LAUNCH_BUDGET);
+    resetLaunchBudget(profile, LAUNCH_BUDGET);
     previewSelection = { ...profile.equipped };
     shootButton.disabled = true;
     pauseButton.disabled = true;
-    hangarStatus.textContent = stipend > 0
-      ? `Vesper replenished ${stipend} coconuts. Select gear for the next sortie.`
-      : "Select gear to compare it with your current build.";
+    hangarStatus.textContent = `New sortie budget: ${LAUNCH_BUDGET} coconuts. Select gear for this run.`;
     renderHangarCategory(hangarCategory);
     loadoutTabs?.querySelector('[aria-selected="true"]')?.focus({ preventScroll: true });
     announce("Wingtail loadout hangar opened.");
@@ -825,6 +828,7 @@ import * as GameVFX from "./game/vfx.js";
           onCue: handleCinematicCue,
           onChoice: showCinematicChoices,
           onComplete: completeCinematic,
+          isVoicePlaying: () => cinematicVoiceActive,
         });
       } catch (cinematicError) {
         console.warn("Cinematic renderer unavailable; using direct briefing.", cinematicError);
@@ -904,13 +908,15 @@ import * as GameVFX from "./game/vfx.js";
   function playCinematicVoice(source) {
     cinematicVoice.pause();
     cinematicVoice.currentTime = 0;
+    cinematicVoiceActive = true;
     cinematicVoice.src = source;
     cinematicVoice.muted = Boolean(audio.isMuted?.());
     cinematicVoice.volume = 0.92;
-    cinematicVoice.play().catch(() => {});
+    cinematicVoice.play().catch(() => { cinematicVoiceActive = false; });
   }
 
   function stopCinematicVoice() {
+    cinematicVoiceActive = false;
     cinematicVoice.pause();
     cinematicVoice.currentTime = 0;
     cinematicVoice.removeAttribute("src");
@@ -1038,7 +1044,6 @@ import * as GameVFX from "./game/vfx.js";
 
   function startGame() {
     if (state === "loading" || state === "unsupported") return;
-    ensureLaunchBudget(profile, LAUNCH_BUDGET);
     reset();
     setDialogVisible(hangarOverlay, false);
     setDialogVisible(upgradeOverlay, false);
@@ -1118,6 +1123,10 @@ import * as GameVFX from "./game/vfx.js";
     if (rageHud) {
       rageHud.disabled = !ready || state !== "playing";
       rageHud.setAttribute("aria-label", active ? "Go Bananas active" : ready ? "Activate Go Bananas" : "Go Bananas charge");
+    }
+    if (rageActionButton) {
+      rageActionButton.hidden = !ready;
+      rageActionButton.disabled = !ready || state !== "playing";
     }
     if (rageLabel) rageLabel.textContent = active ? "Banana Rage" : ready ? "Go Bananas Ready" : "Go Bananas";
     if (rageCount) rageCount.textContent = active ? `${rageTimer.toFixed(1)}s` : ready ? "READY" : `${Math.floor(fury)} / ${FURY_THRESHOLD}`;
@@ -1443,7 +1452,7 @@ import * as GameVFX from "./game/vfx.js";
     if (index === currentLevel && elapsed > 0) return;
     currentLevel = index;
     const level = LEVELS[index];
-    levelNode.textContent = `LEVEL ${index + 1} · ${level.name}`;
+    levelNode.textContent = `LEVEL ${index + 1} / ${LEVELS.length} · ${level.name}`;
     threatBar.style.width = `${level.threat}%`;
     threatBar.style.background = index >= 2 ? "var(--danger)" : index === 1 ? "var(--accent)" : "var(--signal)";
     threatBar.parentElement.setAttribute("aria-valuenow", String(level.threat));
@@ -2134,6 +2143,7 @@ import * as GameVFX from "./game/vfx.js";
   });
   shootButton.addEventListener("pointerdown", (event) => { event.preventDefault(); event.stopPropagation(); fire(); });
   rageHud?.addEventListener("click", activateRage);
+  rageActionButton?.addEventListener("click", activateRage);
   steerZone?.addEventListener("pointerdown", beginSteering);
   steerZone?.addEventListener("pointermove", updateSteeringFromPointer);
   steerZone?.addEventListener("pointerup", endSteering);
@@ -2195,7 +2205,7 @@ import * as GameVFX from "./game/vfx.js";
       if (event.code === "KeyA" || event.code === "ArrowLeft") changeLane(-1);
       if (event.code === "KeyD" || event.code === "ArrowRight") changeLane(1);
       if (event.code === "Enter" || event.code === "KeyX" || event.code === "KeyF" || event.code === "ShiftLeft") fire();
-      if (event.code === "KeyG" || event.code === "KeyB") activateRage();
+      if (event.code === "KeyR" || event.code === "KeyG" || event.code === "KeyB") activateRage();
       if (event.code === "Escape" || event.code === "KeyP") pauseGame();
     } else if (state === "paused" && (event.code === "Escape" || event.code === "KeyP")) resumeGame();
   });

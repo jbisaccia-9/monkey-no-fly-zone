@@ -25,6 +25,8 @@ test("3D source integrates every gameplay module", () => {
   assert.match(source, /function activateRage\(/, "Go Bananas rage should be implemented");
   assert.doesNotMatch(source, /fury >= FURY_THRESHOLD\) activateRage\(\)/, "Go Bananas should wait for player activation");
   assert.match(source, /event\.code === "KeyG"[^\n]+activateRage\(\)/, "G should activate a charged Go Bananas ability");
+  assert.match(source, /event\.code === "KeyR"[^\n]+activateRage\(\)/, "R should activate a charged Go Bananas ability");
+  assert.match(source, /rageActionButton\?\.addEventListener\("click", activateRage\)/, "a dedicated action button should activate Go Bananas");
   assert.match(source, /fire\(true\)/, "rage should automatically fire heavy banana rockets");
   assert.match(source, /projectileCount = rageShot \? 1/, "rage should use a mobile-safe projectile budget");
   assert.match(source, /\{ time: 32, name: "INTERCEPT"/, "the first level should allow a longer opening patrol");
@@ -68,6 +70,7 @@ test("opening briefing establishes the mission", () => {
   assert.match(cinematic, /Nobody has ever hacked potassium/i);
   assert.equal((cinematic.match(/\.\/assets\/voices\//g) || []).length, 14);
   assert.match(cinematic, /const DURATION = 56/, "the cinematic should leave room for complete performances");
+  assert.match(cinematic, /time >= nextBoundary && isVoicePlaying\(\)/, "the cinematic clock should wait for each voice performance");
 });
 
 test("hangar economy purchases and equips persistent loadouts", async () => {
@@ -93,6 +96,10 @@ test("hangar economy purchases and equips persistent loadouts", async () => {
   assert.equal(loadout.ensureLaunchBudget(profile, 120, storage), 45);
   assert.equal(profile.coconuts, 120);
   assert.equal(loadout.ensureLaunchBudget(profile, 120, storage), 0);
+  profile.coconuts = 267;
+  assert.equal(loadout.resetLaunchBudget(profile, 120, storage), 120);
+  assert.equal(profile.coconuts, 120);
+  assert.equal(loadout.loadProfile(storage).coconuts, 120);
   assert.ok(loadout.resolveRunStats(profile, { flight: 1, arsenal: 1, armor: 1 }).maxShields >= 1);
 });
 

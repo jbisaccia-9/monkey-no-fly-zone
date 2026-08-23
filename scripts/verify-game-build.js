@@ -39,6 +39,7 @@ const REQUIRED_IDS = [
   "rageLabel",
   "rageCount",
   "rageMeter",
+  "rageActionButton",
   "objectiveHud",
   "objectiveMeter",
   "objectiveCount",

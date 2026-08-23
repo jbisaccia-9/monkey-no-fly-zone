@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#071014">
     <title>Monkey See, Monkey Pew</title>
     <meta name="description" content="A flying monkey. A stolen terror fleet. Humanity's last wildly unqualified hope.">
-    <link rel="stylesheet" href="./styles.css?v=17">
+    <link rel="stylesheet" href="./styles.css?v=18">
   </head>
   <body>
     <main class="shell" aria-label="Monkey See, Monkey Pew game">
@@ -18,7 +18,7 @@
           <span class="hud__title">Monkey See, Monkey Pew</span>
         </div>
         <div class="hud__center">
-          <span class="hud__level" id="level">LEVEL 1 · PATROL</span>
+          <span class="hud__level" id="level">LEVEL 1 / 8 · PATROL</span>
           <span class="threat" role="progressbar" aria-label="Threat level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="20"><i id="threatBar"></i></span>
         </div>
         <div class="hud__stats">
@@ -73,10 +73,13 @@
           <span>Coconuts <strong id="coconutCount">120</strong></span>
           <span>Shield <strong id="shieldCount">0</strong></span>
         </div>
-        <button class="rage-hud" id="rageHud" type="button" aria-label="Go Bananas charge" aria-live="polite" title="Activate Go Bananas (G)" disabled>
+        <button class="rage-hud" id="rageHud" type="button" aria-label="Go Bananas charge" aria-live="polite" title="Activate Go Bananas (R, G, or B)" disabled>
           <span id="rageLabel">Go Bananas</span>
           <i role="progressbar" aria-label="Rage charge" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0"><b id="rageMeter"></b></i>
           <strong id="rageCount">0 / 10</strong>
+        </button>
+        <button class="rage-action" id="rageActionButton" type="button" aria-label="Activate Go Bananas" title="Activate Go Bananas (R)" hidden disabled>
+          Go Bananas
         </button>
         <div class="objective-hud" id="objectiveHud" aria-label="Command relay objective" hidden>
           <span>Relay Hunt</span>
@@ -223,7 +226,7 @@
                   <button type="button" id="loadoutAction">Equipped</button>
                 </div>
               </aside>
-              <p class="hangar-economy-note">Coconuts persist. Earn more from fighter takedowns, completed levels, and survival.</p>
+              <p class="hangar-economy-note">Each sortie starts with 120 coconuts. Owned equipment remains unlocked.</p>
               <p class="hangar-status" id="hangarStatus" role="status">Choose equipment, then deploy.</p>
               <button class="deploy-button" id="deployButton" type="button">Deploy Equipped Loadout</button>
             </section>
@@ -299,6 +302,6 @@
     </main>
 
     <script src="./audio.js?v=3"></script>
-    <script src="./game.js?v=25"></script>
+    <script src="./game.js?v=26"></script>
   </body>
 </html>

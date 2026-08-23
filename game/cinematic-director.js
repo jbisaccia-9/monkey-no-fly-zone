@@ -131,6 +131,7 @@ export function createCinematicDirector({
   onCue = () => {},
   onChoice = () => {},
   onComplete = () => {},
+  isVoicePlaying = () => false,
 } = {}) {
   if (!canvas) return null;
 
@@ -203,6 +204,21 @@ export function createCinematicDirector({
   let pausedAt = 0;
   let raf = 0;
   let lastCue = -1;
+
+  function scheduleAfterVoice(minimumDelay, callback) {
+    const earliest = performance.now() + minimumDelay;
+    const poll = () => {
+      if (!active) return;
+      if (performance.now() >= earliest && !isVoicePlaying()) {
+        callback();
+        return;
+      }
+      const timer = setTimeout(poll, 80);
+      timers.add(timer);
+    };
+    const timer = setTimeout(poll, Math.min(250, minimumDelay));
+    timers.add(timer);
+  }
 
   const cues = [
     {
@@ -381,7 +397,13 @@ export function createCinematicDirector({
   function render(now) {
     if (!active) return;
     if (!paused && !awaitingChoice && !resolving) {
-      const time = Math.min(DURATION, (now - startTime) / 1000);
+      let time = Math.min(DURATION, (now - startTime) / 1000);
+      const nextBoundary = cues[lastCue + 1]?.at ?? DURATION;
+      if (lastCue >= 0 && time >= nextBoundary && isVoicePlaying()) {
+        const heldTime = Math.max(0, nextBoundary - 0.02);
+        startTime += (time - heldTime) * 1000;
+        time = heldTime;
+      }
       updateScene(time);
       onCue({ progress: time / DURATION });
       if (time >= DURATION) {
@@ -423,8 +445,7 @@ export function createCinematicDirector({
       progress: 1,
     });
     const responseDelay = choice === "doubt" ? 3500 : 4000;
-    const completionDelay = choice === "doubt" ? 7700 : 6500;
-    const first = setTimeout(() => {
+    scheduleAfterVoice(responseDelay, () => {
       showPortrait("vesper");
       onCue({
         speaker: "Commander Vesper",
@@ -433,10 +454,8 @@ export function createCinematicDirector({
         telemetry: ["OPERATION BANANA SKY // AUTHORIZED"],
         progress: 1,
       });
-    }, responseDelay);
-    const second = setTimeout(() => finish(false), completionDelay);
-    timers.add(first);
-    timers.add(second);
+      scheduleAfterVoice(choice === "doubt" ? 4000 : 2400, () => finish(false));
+    });
   }
 
   function finish(skipped = true) {

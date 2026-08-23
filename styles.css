@@ -387,6 +387,35 @@ body {
   background: #ff6a35;
 }
 
+.rage-action {
+  position: absolute;
+  bottom: max(22px, env(safe-area-inset-bottom));
+  left: 50%;
+  z-index: 5;
+  min-width: 180px;
+  min-height: 48px;
+  padding: 12px 20px;
+  transform: translateX(-50%);
+  border: 2px solid #fff1a1;
+  border-radius: 4px;
+  background: #e5b72f;
+  color: #171105;
+  font-size: 13px;
+  font-weight: 950;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  box-shadow: 0 0 28px rgba(255, 207, 54, 0.58);
+  animation: rage-action-ready 480ms ease-in-out infinite alternate;
+}
+
+.rage-action:hover {
+  background: #ffda58;
+}
+
+@keyframes rage-action-ready {
+  to { transform: translateX(-50%) scale(1.04); }
+}
+
 @keyframes rage-pulse {
   to { box-shadow: 0 0 24px rgba(255, 84, 43, 0.58); }
 }
@@ -1923,6 +1952,14 @@ button:focus-visible {
   .rage-hud {
     top: 143px;
     width: min(286px, calc(100vw - 24px));
+  }
+
+  .rage-action {
+    bottom: max(84px, calc(env(safe-area-inset-bottom) + 74px));
+    min-width: 154px;
+    min-height: 46px;
+    padding: 10px 16px;
+    font-size: 11px;
   }
 
   .objective-hud {

@@ -18,7 +18,7 @@ Then visit `http://localhost:8080`.
 
 - `Space`, `W`, or `Up Arrow`: climb
 - `Enter`: throw a ballistic banana
-- `G` or `B`: activate Go Bananas when fully charged
+- `R`, `G`, or `B`: activate Go Bananas when fully charged
 - `X`, `F`, or left `Shift`: alternate fire controls
 - `P` or `Escape`: pause or resume
 - `M`: mute or unmute
@@ -34,10 +34,10 @@ Then visit `http://localhost:8080`.
 - Inspect-before-buy equipment cards with plain-English tactical effects, cost, current balance, affordability, and coconut shortfall
 - Stable wrapped equipment typography across desktop, portrait mobile, and short landscape layouts
 - Equipped-to-preview comparisons with exact green/red deltas and an explicit preview-only state
-- Persistent purchases and equipped gear, with coconuts earned from takedowns, level clears, and survival
+- Persistent owned equipment and equipped gear, with a fresh 120-coconut wallet for every sortie
 - Three flight rigs, three banana weapon systems, three outfits, and meaningful lift, handling, speed, firepower, armor, income, shield, and missile-lock modifiers
 - Mid-mission upgrades for flight control, banana velocity, and coconut armor at level transitions
-- A 120-coconut minimum launch stipend on every new sortie and restart, while purchased equipment remains permanently owned
+- An exact 120-coconut launch budget on every new sortie and restart, while purchased equipment remains permanently owned
 - Airborne coconut caches and rescue bananas that add currency, score, armor recovery, and Go Bananas charge
 - A player-triggered eight-second Banana Rage armed by ten fury points or four aircraft takedowns, with optimized heavy banana rockets
 - Realistic rear chase-view monkey flying head-first into the scene
@@ -62,6 +62,7 @@ Then visit `http://localhost:8080`.
 8. The performance edition replaced the original system voices with separately cast, emotionally directed character performances and retimed the cinematic around natural dialogue pacing.
 9. The tuning edition protected every spoken line with preloading and timing buffers, lengthened level pacing, made Go Bananas player-triggered, and reduced its active projectile load for smoother mobile play.
 10. The campaign-finale edition doubled the authored theaters, added harsher weather, crosswinds and missile salvos, then gave Wingtail a true objective: destroy the Skyshield command relays and bring humanity's skies back online.
+11. The reliability edition synchronized cinematic pacing to completed voice playback, exposed the full eight-level campaign in the HUD, added a dedicated Go Bananas action, reset resources for every sortie, and refreshed deployed asset versions.
 
 Joseph originally began the broader game experiment in April 2026, when Codex had only recently become available to him. He later revisited Monkey No-Fly Zone as a teaching example for his intern, his CEO's 17-year-old son, to show that coding and AI could produce a real playable game rather than only snippets or mockups. Small changes to the instructions, combined with focused sub-agent reviews and repeated hands-on testing, drove the progression from the early arcade loop to this 3D release.
 
@@ -77,7 +78,7 @@ npm run build
 npm test
 ```
 
-The build produces `game.js`, embeds every referenced image and voice track into `monkey-no-fly-zone-standalone.html`, and verifies 86 required DOM hooks plus bundle integrity. The current release bundles ten modules into 668.0 KB, passes ten automated tests across the source and standalone release, and ships as a self-contained 23.39 MB HTML game.
+The build produces `game.js`, embeds every referenced image and voice track into `monkey-no-fly-zone-standalone.html`, and verifies 87 required DOM hooks plus bundle integrity. The current release bundles ten modules into 668.3 KB, passes ten automated tests across the source and standalone release, and ships as a self-contained 23.40 MB HTML game.
 
 ## Project Layout
 
