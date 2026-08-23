@@ -269,6 +269,13 @@ export async function create({
     scarves: [scarfLeft, scarfRight],
     tail,
     engineLight,
+    materials: {
+      metal: shared.metalMaterial,
+      brass: shared.brassMaterial,
+      thruster: shared.thrusterMaterial,
+      trail: shared.trailMaterial,
+      scarves: [scarfLeft.material, scarfRight.material],
+    },
     cameraVelocity: new THREE.Vector3(),
     cameraTarget: new THREE.Vector3(),
     lookTarget: new THREE.Vector3(),
@@ -360,6 +367,34 @@ export function setMobile(controller, mobile) {
   controller.engineLight.distance = controller.mobile ? 3.6 : 4.5;
 }
 
+/** Applies persistent hangar equipment to the in-flight rig. */
+export function applyLoadout(controller, equipped = {}) {
+  if (!controller || controller.disposed) return;
+  const airframe = equipped.airframe || "clockwork-pinions";
+  const outfit = equipped.outfit || "rescue-scarf";
+  const materials = controller.materials;
+
+  const airframeStyle = {
+    "clockwork-pinions": { metal: 0x7d8585, brass: 0xb88a3a, trail: 0xff8a32, scaleX: 1, scaleY: 1 },
+    "howler-rocket-rig": { metal: 0x8b4933, brass: 0xe4a246, trail: 0xff5a24, scaleX: 0.92, scaleY: 1.16 },
+    "thunderbird-glider": { metal: 0x4b6f73, brass: 0x7ee8d3, trail: 0x54e8e0, scaleX: 1.18, scaleY: 0.96 },
+  }[airframe];
+  materials.metal.color.setHex(airframeStyle.metal);
+  materials.brass.color.setHex(airframeStyle.brass);
+  materials.trail.color.setHex(airframeStyle.trail);
+  controller.engineLight.color.setHex(airframeStyle.trail);
+  controller.wings.forEach((wing) => wing.scale.set(airframeStyle.scaleX, airframeStyle.scaleY, 1));
+
+  const outfitStyle = {
+    "rescue-scarf": { left: 0xc42025, right: 0x8f1118, tint: 0xffffff },
+    "ace-jacket": { left: 0xe0a23b, right: 0x9d5f20, tint: 0xfff1d8 },
+    "midnight-suit": { left: 0x2b7274, right: 0x163f48, tint: 0xc9e1df },
+  }[outfit];
+  materials.scarves[0].color.setHex(outfitStyle.left);
+  materials.scarves[1].color.setHex(outfitStyle.right);
+  controller.hero.material.color.setHex(outfitStyle.tint);
+}
+
 export function dispose(controller) {
   if (!controller || controller.disposed) return;
   controller.disposed = true;
@@ -368,4 +403,5 @@ export function dispose(controller) {
   controller.texture.dispose();
   controller.wings.length = 0;
   controller.scarves.length = 0;
+  controller.materials = null;
 }

@@ -2,6 +2,17 @@ import * as THREE from "./vendor/three.module.min.js";
 import * as PlayerVisual from "./game/player-visual.js";
 import { createCityStream } from "./game/city-stream.js";
 import { createCombatDirector } from "./game/combat-director.js";
+import {
+  CATALOG,
+  FIELD_UPGRADES,
+  awardCoconuts,
+  createRunUpgrades,
+  displayStats,
+  getItem,
+  loadProfile,
+  purchaseOrEquip,
+  resolveRunStats,
+} from "./game/loadout.js";
 import * as GameVFX from "./game/vfx.js";
 
 (() => {
@@ -23,6 +34,8 @@ import * as GameVFX from "./game/vfx.js";
   const bestNode = document.getElementById("best");
   const pointsNode = document.getElementById("points");
   const multiplierNode = document.getElementById("multiplier");
+  const coconutCount = document.getElementById("coconutCount");
+  const shieldCount = document.getElementById("shieldCount");
   const levelNode = document.getElementById("level");
   const threatBar = document.getElementById("threatBar");
   const missileWarning = document.getElementById("missileWarning");
@@ -37,6 +50,34 @@ import * as GameVFX from "./game/vfx.js";
   const steerZone = document.getElementById("steerZone");
   const liftButton = document.getElementById("liftButton");
   const statusRegion = document.getElementById("statusRegion");
+  const hangarOverlay = document.getElementById("hangarOverlay");
+  const hangarWallet = document.getElementById("hangarWallet");
+  const hangarPreview = document.getElementById("hangarPreview");
+  const hangarPortrait = document.getElementById("hangarPortrait");
+  const previewState = document.getElementById("previewState");
+  const previewRig = document.getElementById("previewRig");
+  const previewWeapon = document.getElementById("previewWeapon");
+  const previewOutfit = document.getElementById("previewOutfit");
+  const loadoutTabs = document.getElementById("loadoutTabs");
+  const loadoutItems = document.getElementById("loadoutItems");
+  const hangarStatus = document.getElementById("hangarStatus");
+  const selectionName = document.getElementById("selectionName");
+  const selectionBenefit = document.getElementById("selectionBenefit");
+  const selectionDeltas = document.getElementById("selectionDeltas");
+  const selectionPrice = document.getElementById("selectionPrice");
+  const selectionBalance = document.getElementById("selectionBalance");
+  const loadoutAction = document.getElementById("loadoutAction");
+  const deployButton = document.getElementById("deployButton");
+  const statNodes = {
+    lift: document.getElementById("statLift"),
+    handling: document.getElementById("statHandling"),
+    firepower: document.getElementById("statFirepower"),
+    survival: document.getElementById("statSurvival"),
+  };
+  const upgradeOverlay = document.getElementById("upgradeOverlay");
+  const upgradeTitle = document.getElementById("upgradeTitle");
+  const upgradeGrid = document.getElementById("upgradeGrid");
+  const upgradeWallet = document.getElementById("upgradeWallet");
   const audio = window.GameAudio || {};
 
   const FIXED_STEP = 1 / 60;
@@ -90,6 +131,13 @@ import * as GameVFX from "./game/vfx.js";
   let pointerStart = null;
   let steerPointerId = null;
   let mobileMode = false;
+  let hangarCategory = "airframe";
+  let profile = loadProfile();
+  let previewSelection = { ...profile.equipped };
+  let runUpgrades = createRunUpgrades();
+  let runStats = resolveRunStats(profile, runUpgrades);
+  let shields = runStats.maxShields;
+  let runCoconuts = 0;
   let best = Number(localStorage.getItem("monkeyNoFlyBest3D") || localStorage.getItem("monkeyNoFlyBest") || 0);
 
   const monkey = { x: 0, y: 0.7, z: PLAYER_Z, vy: 0, vx: 0, lane: 1, bank: 0, pitch: 0, radius: PlayerVisual.PLAYER_COLLISION_RADIUS };
@@ -102,6 +150,13 @@ import * as GameVFX from "./game/vfx.js";
   const tempV2 = new THREE.Vector3();
 
   bestNode.textContent = String(Math.floor(best));
+  if (coconutCount) coconutCount.textContent = String(profile.coconuts);
+  for (const item of Object.values(CATALOG).flat()) {
+    if (item.previewAsset) {
+      const image = new Image();
+      image.src = item.previewAsset;
+    }
+  }
 
   function announce(message) {
     statusRegion.textContent = "";
@@ -110,6 +165,262 @@ import * as GameVFX from "./game/vfx.js";
 
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
+  }
+
+  function setDialogVisible(dialog, visible) {
+    if (!dialog) return;
+    dialog.hidden = !visible;
+    dialog.inert = !visible;
+    dialog.setAttribute("aria-hidden", String(!visible));
+    dialog.classList.toggle("is-visible", visible);
+  }
+
+  function updateProgressDisplays() {
+    if (coconutCount) coconutCount.textContent = String(profile.coconuts);
+    if (hangarWallet) hangarWallet.textContent = String(profile.coconuts);
+    if (upgradeWallet) upgradeWallet.textContent = String(profile.coconuts);
+    if (shieldCount) shieldCount.textContent = String(shields);
+  }
+
+  function updateHangarPreview() {
+    const previewProfile = {
+      ...profile,
+      equipped: { ...profile.equipped, ...previewSelection },
+    };
+    const airframe = getItem("airframe", previewProfile.equipped.airframe);
+    const weapon = getItem("weapon", previewProfile.equipped.weapon);
+    const outfit = getItem("outfit", previewProfile.equipped.outfit);
+    const focusedItem = getItem(hangarCategory, previewSelection[hangarCategory]);
+    const focusedIsEquipped = profile.equipped[hangarCategory] === focusedItem.id;
+    if (hangarPreview) {
+      hangarPreview.dataset.airframe = airframe.id;
+      hangarPreview.dataset.weapon = weapon.id;
+      hangarPreview.dataset.outfit = outfit.id;
+      hangarPreview.classList.remove("is-swapping");
+      void hangarPreview.offsetWidth;
+      hangarPreview.classList.add("is-swapping");
+    }
+    if (hangarPortrait && hangarPortrait.getAttribute("src") !== focusedItem.previewAsset) {
+      hangarPortrait.src = focusedItem.previewAsset;
+    }
+    if (hangarPortrait) hangarPortrait.alt = "Wingtail previewing " + focusedItem.name + " in the equipment hangar";
+    if (previewState) {
+      previewState.textContent = focusedIsEquipped ? "Current loadout" : "Preview only";
+      previewState.dataset.current = String(focusedIsEquipped);
+    }
+    const categoryLabel = { airframe: "Flight rig", weapon: "Banana system", outfit: "Flight clothing" }[hangarCategory];
+    if (previewRig) previewRig.textContent = focusedItem.name;
+    if (previewWeapon) previewWeapon.textContent = categoryLabel + " preview";
+    if (previewOutfit) previewOutfit.textContent = focusedIsEquipped ? "Equipped item" : "Store preview";
+    const stats = displayStats(previewProfile);
+    for (const [key, node] of Object.entries(statNodes)) {
+      if (node) node.style.width = stats[key] + "%";
+    }
+    updateProgressDisplays();
+  }
+
+  function formatDelta(value, suffix = "") {
+    if (Math.abs(value) < 0.005) return "No change";
+    const rounded = Number.isInteger(value) ? value : Math.round(value * 10) / 10;
+    return (rounded > 0 ? "+" : "") + rounded + suffix;
+  }
+
+  function getComparisonRows(category, currentItem, previewItem) {
+    const current = currentItem.modifiers;
+    const preview = previewItem.modifiers;
+    if (category === "airframe") {
+      return [
+        ["Lift", Math.round(current.lift * 100), Math.round(preview.lift * 100), "%"],
+        ["Agility", Math.round(current.handling * 100), Math.round(preview.handling * 100), "%"],
+        ["Speed", Math.round(current.speed * 100), Math.round(preview.speed * 100), "%"],
+      ];
+    }
+    if (category === "weapon") {
+      return [
+        ["Damage", current.damage, preview.damage, ""],
+        ["Fire rate", Math.round(10 / current.cooldown) / 10, Math.round(10 / preview.cooldown) / 10, "/sec"],
+        ["Payload", current.projectiles, preview.projectiles, "x"],
+      ];
+    }
+    return [
+      ["Coconut yield", Math.round(current.income * 100), Math.round(preview.income * 100), "%"],
+      ["Impact shields", current.shield, preview.shield, ""],
+      ["Lock resistance", Math.round(current.lockResistance * 100), Math.round(preview.lockResistance * 100), "%"],
+    ];
+  }
+
+  function renderSelectionDeltas(item) {
+    if (!selectionDeltas) return;
+    const currentItem = getItem(hangarCategory, profile.equipped[hangarCategory]);
+    const rows = getComparisonRows(hangarCategory, currentItem, item);
+    const nodes = rows.map(([label, current, preview, suffix]) => {
+      const row = document.createElement("span");
+      const name = document.createElement("b");
+      const values = document.createElement("i");
+      const delta = document.createElement("em");
+      const difference = preview - current;
+      name.textContent = label;
+      values.textContent = current + suffix + " → " + preview + suffix;
+      delta.textContent = formatDelta(difference, suffix);
+      delta.dataset.direction = difference > 0 ? "up" : difference < 0 ? "down" : "same";
+      row.append(name, values, delta);
+      return row;
+    });
+    selectionDeltas.replaceChildren(...nodes);
+  }
+
+  function updateSelectionInspector() {
+    const item = getItem(hangarCategory, previewSelection[hangarCategory]);
+    if (!item) return;
+    const owned = profile.owned[hangarCategory].includes(item.id);
+    const equipped = profile.equipped[hangarCategory] === item.id;
+    const affordable = profile.coconuts >= item.cost;
+    if (selectionName) selectionName.textContent = item.name;
+    if (selectionBenefit) selectionBenefit.textContent = item.benefit;
+    renderSelectionDeltas(item);
+    if (selectionPrice) {
+      selectionPrice.textContent = owned ? "Owned" : item.cost + " coconuts";
+      selectionPrice.dataset.affordable = String(affordable || owned);
+    }
+    if (selectionBalance) selectionBalance.textContent = String(profile.coconuts);
+    if (loadoutAction) {
+      loadoutAction.disabled = equipped || (!owned && !affordable);
+      loadoutAction.textContent = equipped
+        ? "Equipped"
+        : owned
+          ? "Equip " + item.name
+          : affordable
+            ? "Buy & Equip · " + item.cost
+            : "Need " + (item.cost - profile.coconuts) + " more";
+    }
+    if (deployButton) {
+      const rig = getItem("airframe", profile.equipped.airframe).name;
+      const weapon = getItem("weapon", profile.equipped.weapon).name;
+      deployButton.textContent = "Deploy Current Build";
+      deployButton.setAttribute("aria-label", "Deploy current build: " + rig + " and " + weapon);
+    }
+  }
+
+  function makeLoadoutItem(item, category) {
+    const owned = profile.owned[category].includes(item.id);
+    const equipped = profile.equipped[category] === item.id;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "loadout-item";
+    button.dataset.itemId = item.id;
+    button.dataset.owned = String(owned);
+    const selected = previewSelection[category] === item.id;
+    button.setAttribute("aria-pressed", String(selected));
+    button.dataset.equipped = String(equipped);
+
+    const title = document.createElement("span");
+    title.className = "loadout-item__title";
+    title.textContent = item.name;
+    const tag = document.createElement("span");
+    tag.className = "loadout-item__tag";
+    tag.textContent = item.tag;
+    const description = document.createElement("span");
+    description.className = "loadout-item__description";
+    description.textContent = item.description;
+    const footer = document.createElement("span");
+    footer.className = "loadout-item__footer";
+    const specs = document.createElement("span");
+    specs.className = "loadout-item__specs";
+    specs.textContent = item.specs.join(" · ");
+    const price = document.createElement("span");
+    price.className = "loadout-item__price";
+    price.textContent = equipped ? "Equipped" : owned ? "Owned" : item.cost + " coconuts";
+    footer.append(specs, price);
+    button.append(title, tag, description, footer);
+
+    button.addEventListener("click", () => {
+      previewSelection[category] = item.id;
+      hangarStatus.textContent = item.name + " is a preview only. Deploy uses equipped gear until you buy or equip it.";
+      renderHangarCategory(category);
+    });
+    return button;
+  }
+
+  function renderHangarCategory(category = hangarCategory) {
+    if (!CATALOG[category] || !loadoutItems) return;
+    hangarCategory = category;
+    for (const tab of loadoutTabs?.querySelectorAll("[data-category]") || []) {
+      tab.setAttribute("aria-selected", String(tab.dataset.category === category));
+    }
+    loadoutItems.replaceChildren(...CATALOG[category].map((item) => makeLoadoutItem(item, category)));
+    updateSelectionInspector();
+    updateHangarPreview();
+  }
+
+  function showHangar() {
+    if (state === "loading" || state === "unsupported") return;
+    state = "hangar";
+    setOverlayVisible(false);
+    setDialogVisible(upgradeOverlay, false);
+    setDialogVisible(hangarOverlay, true);
+    previewSelection = { ...profile.equipped };
+    shootButton.disabled = true;
+    pauseButton.disabled = true;
+    hangarStatus.textContent = "Select gear to compare it with your current build.";
+    renderHangarCategory(hangarCategory);
+    loadoutTabs?.querySelector('[aria-selected="true"]')?.focus({ preventScroll: true });
+    announce("Wingtail loadout hangar opened.");
+  }
+
+  function renderUpgradeChoices() {
+    if (!upgradeGrid) return;
+    upgradeGrid.replaceChildren(...FIELD_UPGRADES.map((upgrade) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "upgrade-choice";
+      const tag = document.createElement("small");
+      tag.textContent = upgrade.tag + " · Tier " + (runUpgrades[upgrade.id] + 1);
+      const name = document.createElement("strong");
+      name.textContent = upgrade.name;
+      const description = document.createElement("span");
+      description.textContent = upgrade.description;
+      const effect = document.createElement("b");
+      effect.textContent = upgrade.effect;
+      button.append(tag, name, description, effect);
+      button.addEventListener("click", () => chooseFieldUpgrade(upgrade));
+      return button;
+    }));
+  }
+
+  function showFieldUpgrade(levelIndex) {
+    state = "upgrading";
+    shootButton.disabled = true;
+    if (liftButton) liftButton.disabled = true;
+    keys.delete("TouchLift");
+    upgradeTitle.textContent = "Level " + (levelIndex + 1) + " field upgrade";
+    renderUpgradeChoices();
+    updateProgressDisplays();
+    setDialogVisible(upgradeOverlay, true);
+    audio.setPaused?.(true);
+    upgradeGrid?.querySelector("button")?.focus();
+  }
+
+  function chooseFieldUpgrade(upgrade) {
+    runUpgrades[upgrade.id] += 1;
+    runStats = resolveRunStats(profile, runUpgrades);
+    if (upgrade.id === "armor") shields += 1;
+    setDialogVisible(upgradeOverlay, false);
+    state = "playing";
+    shootButton.disabled = false;
+    if (liftButton) liftButton.disabled = false;
+    audio.setPaused?.(false);
+    lastTime = performance.now();
+    updateProgressDisplays();
+    canvas.focus({ preventScroll: true });
+    announce(upgrade.name + " installed.");
+  }
+
+  function earnCoconuts(baseAmount, label) {
+    const earned = awardCoconuts(profile, Math.max(1, Math.round(baseAmount * runStats.income)));
+    runCoconuts += earned;
+    updateProgressDisplays();
+    if (label) announce(label + ". " + earned + " coconuts recovered.");
+    return earned;
   }
 
   function simRandom() {
@@ -217,8 +528,9 @@ import * as GameVFX from "./game/vfx.js";
     return group;
   }
 
-  function createShotView() {
+  function createShotView(weaponId = "ripe-repeater") {
     const group = new THREE.Group();
+    const plantain = weaponId === "plantain-piercer";
     const curve = new THREE.CatmullRomCurve3([
       new THREE.Vector3(-0.44, 0.16, 0),
       new THREE.Vector3(-0.24, -0.03, 0),
@@ -228,7 +540,12 @@ import * as GameVFX from "./game/vfx.js";
     ]);
     const peel = new THREE.Mesh(
       new THREE.TubeGeometry(curve, 12, 0.095, 7, false),
-      makeMaterial(0xffd92f, { metalness: 0.05, roughness: 0.48, emissive: 0x9b5f00, emissiveIntensity: 0.72 }),
+      makeMaterial(plantain ? 0x8fcf32 : 0xffd92f, {
+        metalness: 0.05,
+        roughness: 0.48,
+        emissive: plantain ? 0x284b08 : 0x9b5f00,
+        emissiveIntensity: 0.72,
+      }),
     );
     group.add(peel);
 
@@ -244,9 +561,9 @@ import * as GameVFX from "./game/vfx.js";
     rightTip.rotation.z = 0.62;
     group.add(rightTip);
 
-    const glow = new THREE.PointLight(0xffc73d, 1.5, 4);
+    const glow = new THREE.PointLight(plantain ? 0x9fe64d : 0xffc73d, 1.5, 4);
     group.add(glow);
-    group.scale.setScalar(1.18);
+    group.scale.setScalar(weaponId === "cluster-bunch" ? 0.86 : plantain ? 1.3 : 1.18);
     group.userData.isBananaProjectile = true;
     return group;
   }
@@ -345,6 +662,7 @@ import * as GameVFX from "./game/vfx.js";
         mobile: innerWidth <= 700,
         reducedMotion,
       });
+      PlayerVisual.applyLoadout(playerController, profile.equipped);
       PlayerVisual.update(playerController, 0, monkey, { active: false, speed: LEVELS[0].speed });
       PlayerVisual.updateCamera(playerController, FIXED_STEP, monkey);
       combatDirector = createDirector();
@@ -395,6 +713,10 @@ import * as GameVFX from "./game/vfx.js";
     chain = 1;
     chainTimer = 0;
     shotCooldown = 0;
+    runUpgrades = createRunUpgrades();
+    runStats = resolveRunStats(profile, runUpgrades);
+    shields = runStats.maxShields;
+    runCoconuts = 0;
     currentLevel = 0;
     seed = (Date.now() ^ 0x74ac31) >>> 0;
     cityStream?.setSeed(seed, { regenerate: true });
@@ -406,6 +728,8 @@ import * as GameVFX from "./game/vfx.js";
     scoreNode.textContent = "0";
     pointsNode.textContent = "0";
     multiplierNode.textContent = "1.00×";
+    PlayerVisual.applyLoadout(playerController, profile.equipped);
+    updateProgressDisplays();
     missileWarning.hidden = true;
     lockMeter.style.width = "0%";
     targetingHud?.classList.remove("is-locked");
@@ -418,6 +742,8 @@ import * as GameVFX from "./game/vfx.js";
   function startGame() {
     if (state === "loading" || state === "unsupported") return;
     reset();
+    setDialogVisible(hangarOverlay, false);
+    setDialogVisible(upgradeOverlay, false);
     state = "playing";
     overlay.dataset.mode = "flight";
     setOverlayVisible(false);
@@ -432,7 +758,7 @@ import * as GameVFX from "./game/vfx.js";
 
   function flap() {
     if (state !== "playing") return;
-    monkey.vy = Math.min(monkey.vy + 3.5, 6.4);
+    monkey.vy = Math.min(monkey.vy + 3.5 * Math.sqrt(runStats.lift), 6.4 * runStats.lift);
     monkey.pitch = 0.34;
     GameVFX.spawn(vfxManager, "jetExhaust", {
       position: { x: monkey.x, y: monkey.y - 0.1, z: monkey.z + 0.35 },
@@ -467,43 +793,53 @@ import * as GameVFX from "./game/vfx.js";
   }
 
   function updateWeaponCooldown() {
-    const charge = Math.round(clamp(1 - shotCooldown / 0.2, 0, 1) * 100);
+    const charge = Math.round(clamp(1 - shotCooldown / runStats.cooldown, 0, 1) * 100);
     weaponCooldown?.style.setProperty("--weapon-charge", String(charge));
     weaponCooldown?.setAttribute("aria-valuenow", String(charge));
   }
 
   function fire() {
     if (state !== "playing" || shotCooldown > 0) return;
-    shotCooldown = 0.2;
+    shotCooldown = runStats.cooldown;
     const target = findAimTarget();
     const direction = new THREE.Vector3(0, 0, -1);
     if (target) {
       tempV.set(target.x - monkey.x, target.y - monkey.y, target.z - monkey.z).normalize();
       direction.lerp(tempV, innerWidth <= 700 ? 0.82 : 0.68).normalize();
     }
-    const view = createShotView();
-    view.position.set(monkey.x, monkey.y, monkey.z - 0.9);
-    scene.add(view);
-    shots.push({
-      x: monkey.x,
-      y: monkey.y,
-      z: monkey.z - 0.9,
-      previous: new THREE.Vector3(monkey.x, monkey.y, monkey.z - 0.9),
-      velocity: direction.multiplyScalar(54),
-      life: 1.9,
-      trailTimer: 0,
-      spin: randomRange(11, 16) * (simRandom() > 0.5 ? 1 : -1),
-      tumble: randomRange(7, 11),
-      view,
-    });
-    GameVFX.spawn(vfxManager, "projectileTrail", {
-      position: view.position,
-      velocity: shots[shots.length - 1].velocity,
-      life: 0.14,
-      width: 0.075,
-      length: 1.2,
-      color: 0xffed68,
-    });
+    const weaponId = profile.equipped.weapon;
+    for (let index = 0; index < runStats.projectiles; index += 1) {
+      const offset = index - (runStats.projectiles - 1) / 2;
+      const shotDirection = direction.clone();
+      shotDirection.x += offset * runStats.spread;
+      shotDirection.y += Math.abs(offset) * runStats.spread * 0.16;
+      shotDirection.normalize();
+      const view = createShotView(weaponId);
+      view.position.set(monkey.x + offset * 0.16, monkey.y, monkey.z - 0.9);
+      scene.add(view);
+      const shot = {
+        x: view.position.x,
+        y: view.position.y,
+        z: view.position.z,
+        previous: view.position.clone(),
+        velocity: shotDirection.multiplyScalar(runStats.projectileVelocity),
+        damage: runStats.damage,
+        life: 1.9,
+        trailTimer: 0,
+        spin: randomRange(11, 16) * (simRandom() > 0.5 ? 1 : -1),
+        tumble: randomRange(7, 11),
+        view,
+      };
+      shots.push(shot);
+      GameVFX.spawn(vfxManager, "projectileTrail", {
+        position: view.position,
+        velocity: shot.velocity,
+        life: 0.14,
+        width: weaponId === "cluster-bunch" ? 0.05 : 0.075,
+        length: 1.2,
+        color: weaponId === "plantain-piercer" ? 0xa8ec58 : 0xffed68,
+      });
+    }
     updateWeaponCooldown();
     audio.playShot?.();
   }
@@ -523,6 +859,10 @@ import * as GameVFX from "./game/vfx.js";
     }
     combatDirector?.setLevel(index, { clearSchedule: shouldAnnounce });
     audio.playLevel?.(index);
+    if (shouldAnnounce && index > 0) {
+      earnCoconuts(12 + index * 4);
+      showFieldUpgrade(index);
+    }
     if (shouldAnnounce) announce(`Level ${index + 1}: ${level.name}. City sector changed.`);
   }
 
@@ -612,8 +952,8 @@ import * as GameVFX from "./game/vfx.js";
 
   function updateMonkey(dt) {
     const held = keys.has("Space") || keys.has("KeyW") || keys.has("ArrowUp") || keys.has("TouchLift");
-    if (held) monkey.vy += 5.8 * dt;
-    monkey.vy = clamp(monkey.vy - 3.1 * dt, -3.6, 6.4);
+    if (held) monkey.vy += 5.8 * runStats.lift * dt;
+    monkey.vy = clamp(monkey.vy - 3.1 * dt, -3.6, 6.4 * runStats.lift);
     monkey.y += monkey.vy * dt;
     if (monkey.y < ALTITUDE_MIN || monkey.y > ALTITUDE_MAX) {
       monkey.y = clamp(monkey.y, ALTITUDE_MIN, ALTITUDE_MAX);
@@ -621,8 +961,8 @@ import * as GameVFX from "./game/vfx.js";
       cameraShake = Math.max(cameraShake, 0.08);
     }
     const laneTarget = LANES[monkey.lane];
-    monkey.vx += (laneTarget - monkey.x) * 34 * dt;
-    monkey.vx *= Math.exp(-9 * dt);
+    monkey.vx += (laneTarget - monkey.x) * 34 * runStats.handling * dt;
+    monkey.vx *= Math.exp(-9 * Math.sqrt(runStats.handling) * dt);
     monkey.x += monkey.vx * dt;
     monkey.bank += (clamp(-monkey.vx * 0.08, -0.48, 0.48) - monkey.bank) * dt * 8;
     monkey.pitch += (clamp(-monkey.vy * 0.045, -0.34, 0.34) - monkey.pitch) * dt * 7;
@@ -632,6 +972,24 @@ import * as GameVFX from "./game/vfx.js";
       speed: LEVELS[currentLevel].speed,
       thrust: 0.52 + clamp(Math.abs(monkey.vy) / 6.4, 0, 1) * 0.42,
     });
+  }
+
+  function absorbHit(reason, position) {
+    if (shields <= 0) return false;
+    shields -= 1;
+    updateProgressDisplays();
+    cameraShake = reducedMotion ? 0.05 : 0.2;
+    GameVFX.spawn(vfxManager, "explosion", {
+      position,
+      count: 16,
+      scale: 0.82,
+      speed: 5.5,
+      color: 0x62ead0,
+      impulse: 0.32,
+    });
+    GameVFX.spawn(vfxManager, "hitFlash", { color: 0x62ead0, intensity: 0.62, impulse: 0.32 });
+    announce("Coconut shield absorbed " + reason + ". " + shields + " remaining.");
+    return true;
   }
 
   function updateJets(dt) {
@@ -662,6 +1020,10 @@ import * as GameVFX from "./game/vfx.js";
 
       const dz = jet.z - monkey.z;
       if (Math.abs(dz) < 1.2 && Math.hypot(jet.x - monkey.x, jet.y - monkey.y) < monkey.radius + 0.7 * jet.spec.scale) {
+        if (absorbHit(jet.spec.name + " collision", jet)) {
+          destroyJet(i);
+          continue;
+        }
         gameOver(`${jet.spec.name} collision`);
         return;
       }
@@ -710,7 +1072,7 @@ import * as GameVFX from "./game/vfx.js";
         missile.x = missile.source.x;
         missile.y = missile.source.y - 0.4;
         missile.z = missile.source.z + 0.4;
-        missile.timer = Math.max(0, missile.timer - dt);
+        missile.timer = Math.max(0, missile.timer - dt * (1 - runStats.lockResistance));
         const evade = Math.abs(monkey.vx) > 2.2 || Math.abs(monkey.vy) > 6.2;
         if (evade) missile.timer = Math.min(missile.lockDuration, missile.timer + dt * 0.22);
         const progress = 1 - missile.timer / missile.lockDuration;
@@ -758,6 +1120,11 @@ import * as GameVFX from "./game/vfx.js";
 
       if (playerDistance < monkey.radius + 0.4) {
         GameVFX.spawn(vfxManager, "explosion", { position: missile, count: 22, scale: 1.25, speed: 7, color: 0xff663d, impulse: 0.85 });
+        if (absorbHit("missile strike", missile)) {
+          removeView(missile.view);
+          missiles.splice(i, 1);
+          continue;
+        }
         GameVFX.spawn(vfxManager, "hitFlash", { color: 0xff4b36, intensity: 1.15, impulse: 0.8 });
         gameOver("missile strike");
         return;
@@ -824,7 +1191,7 @@ import * as GameVFX from "./game/vfx.js";
         for (let j = jets.length - 1; j >= 0; j -= 1) {
           const jet = jets[j];
           if (segmentDistance(new THREE.Vector3(jet.x, jet.y, jet.z), shot.previous, shot.view.position) < 1.05 * jet.spec.scale) {
-            jet.hp -= 1;
+            jet.hp -= shot.damage;
             GameVFX.spawn(vfxManager, "explosion", {
               position: jet,
               count: jet.hp <= 0 ? 20 : 6,
@@ -856,6 +1223,7 @@ import * as GameVFX from "./game/vfx.js";
         missiles.splice(i, 1);
       }
     }
+    earnCoconuts(Math.max(2, Math.round(jet.spec.score / 190)));
     awardSkill(`${jet.spec.name} DOWN`, jet.spec.score);
     audio.playJetDestroyed?.(clamp(jet.x / 8, -1, 1));
     cameraShake = reducedMotion ? 0.04 : 0.15;
@@ -898,7 +1266,7 @@ import * as GameVFX from "./game/vfx.js";
   }
 
   function updateScenery(dt) {
-    const speed = LEVELS[currentLevel].speed * 0.5;
+    const speed = LEVELS[currentLevel].speed * 0.5 * runStats.speed;
     applyCityEnvironment(cityStream?.update(dt, { speed }));
     for (const cloud of cloudGroup.children) {
       cloud.position.z += speed * dt * 0.34;
@@ -943,7 +1311,7 @@ import * as GameVFX from "./game/vfx.js";
       return;
     }
     elapsed += dt;
-    distance += dt * (1.5 + currentLevel * 0.18);
+    distance += dt * (1.5 + currentLevel * 0.18) * runStats.speed;
     shotCooldown = Math.max(0, shotCooldown - dt);
     updateWeaponCooldown();
     chainTimer -= dt;
@@ -952,6 +1320,7 @@ import * as GameVFX from "./game/vfx.js";
       multiplierNode.textContent = `${chain.toFixed(2)}×`;
     }
     updateLevel();
+    if (state !== "playing") return;
     combatDirector?.update(dt, {
       activeAircraft: jets.length,
       activeMissiles: missiles.length,
@@ -986,6 +1355,7 @@ import * as GameVFX from "./game/vfx.js";
     audio.playImpact?.(reason);
     audio.stopRun?.(reason);
     const finalDistance = Math.floor(distance);
+    if (finalDistance >= 8) earnCoconuts(Math.max(1, Math.floor(finalDistance / 12)));
     if (finalDistance > best) {
       best = finalDistance;
       bestNode.textContent = String(best);
@@ -995,9 +1365,9 @@ import * as GameVFX from "./game/vfx.js";
       state = "gameover";
       overlay.dataset.mode = "result";
       overlayTitle.textContent = "Flight terminated.";
-      overlayText.textContent = `${reason}. You survived ${finalDistance} km and scored ${points.toLocaleString()} skill points.`;
+      overlayText.textContent = `${reason}. You survived ${finalDistance} km, scored ${points.toLocaleString()} points, and recovered ${runCoconuts} coconuts.`;
       if (briefingOrder) briefingOrder.hidden = true;
-      startButton.textContent = "Fly Again";
+      startButton.textContent = "Return to Hangar";
       setOverlayVisible(true);
       announce(`Flight terminated by ${reason}.`);
     }, reducedMotion ? 120 : 650);
@@ -1086,7 +1456,23 @@ import * as GameVFX from "./game/vfx.js";
     keys.delete("TouchLift");
   }
 
-  startButton.addEventListener("click", startGame);
+  startButton.addEventListener("click", showHangar);
+  deployButton?.addEventListener("click", startGame);
+  loadoutAction?.addEventListener("click", () => {
+    const item = getItem(hangarCategory, previewSelection[hangarCategory]);
+    if (!item) return;
+    const result = purchaseOrEquip(profile, hangarCategory, item.id);
+    hangarStatus.textContent = result.ok
+      ? result.item.name + (result.action === "purchased" ? " purchased and equipped." : " equipped.")
+      : result.reason;
+    PlayerVisual.applyLoadout?.(playerController, profile.equipped);
+    renderHangarCategory(hangarCategory);
+    updateHangarPreview();
+  });
+  loadoutTabs?.addEventListener("click", (event) => {
+    const tab = event.target.closest("[data-category]");
+    if (tab) renderHangarCategory(tab.dataset.category);
+  });
   pauseButton.addEventListener("click", pauseGame);
   resumeButton.addEventListener("click", resumeGame);
   restartButton.addEventListener("click", () => { resumeGame(); startGame(); });

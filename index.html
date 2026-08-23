@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#071014">
     <title>Monkey See, Monkey Pew</title>
     <meta name="description" content="A flying monkey. A stolen terror fleet. Humanity's last wildly unqualified hope.">
-    <link rel="stylesheet" href="./styles.css?v=10">
+    <link rel="stylesheet" href="./styles.css?v=13">
   </head>
   <body>
     <main class="shell" aria-label="Monkey See, Monkey Pew game">
@@ -43,6 +43,7 @@
             aria-label="Pause game"
             aria-controls="pauseOverlay"
             title="Pause game"
+            disabled
           >
             <span class="pause-icon" aria-hidden="true"></span>
           </button>
@@ -69,6 +70,8 @@
         <div class="skill-hud" aria-label="Skill score">
           <span>Points <strong id="points">0</strong></span>
           <span>Chain <strong id="multiplier">x1</strong></span>
+          <span>Coconuts <strong id="coconutCount">120</strong></span>
+          <span>Shield <strong id="shieldCount">0</strong></span>
         </div>
       </section>
 
@@ -127,6 +130,99 @@
       </section>
 
       <section
+        class="overlay hangar-overlay"
+        id="hangarOverlay"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="hangarTitle"
+        aria-hidden="true"
+        hidden
+        inert
+      >
+        <div class="hangar-shell">
+          <header class="hangar-header">
+            <div>
+              <span class="overlay__kicker">VESPER FIELD ARMORY</span>
+              <h2 id="hangarTitle">Build Wingtail</h2>
+            </div>
+            <div class="coconut-wallet" aria-label="Available coconuts">
+              <span class="coconut-wallet__icon" aria-hidden="true"></span>
+              <strong id="hangarWallet">120</strong>
+              <small>Coconuts</small>
+            </div>
+          </header>
+
+          <div class="hangar-layout">
+            <section class="monkey-bay" aria-label="Wingtail loadout preview">
+              <div class="monkey-preview" id="hangarPreview" data-airframe="clockwork-pinions" data-weapon="ripe-repeater" data-outfit="rescue-scarf">
+                <img id="hangarPortrait" src="./assets/wingtail-hangar-front-v1.png" alt="Wingtail facing forward in the equipment hangar">
+                <span class="monkey-preview__scan" aria-hidden="true"></span>
+                <span class="monkey-preview__state" id="previewState">Current loadout</span>
+                <span class="monkey-preview__rig"><b id="previewRig">Clockwork Pinions</b><b id="previewWeapon">Ripe Repeater</b></span>
+              </div>
+              <div class="monkey-identity">
+                <div>
+                  <small>Pilot 01</small>
+                  <strong>Wingtail</strong>
+                </div>
+                <span id="previewOutfit">Red Rescue Scarf</span>
+              </div>
+              <div class="loadout-stats" aria-label="Current loadout statistics">
+                <span>Lift <i><b id="statLift"></b></i></span>
+                <span>Handling <i><b id="statHandling"></b></i></span>
+                <span>Firepower <i><b id="statFirepower"></b></i></span>
+                <span>Survival <i><b id="statSurvival"></b></i></span>
+              </div>
+            </section>
+
+            <section class="armory" aria-label="Equipment selection">
+              <div class="loadout-tabs" id="loadoutTabs" role="tablist" aria-label="Equipment categories">
+                <button type="button" role="tab" aria-selected="true" data-category="airframe">Flight rig</button>
+                <button type="button" role="tab" aria-selected="false" data-category="weapon">Bananas</button>
+                <button type="button" role="tab" aria-selected="false" data-category="outfit">Clothing</button>
+              </div>
+              <div class="loadout-items" id="loadoutItems" role="tabpanel" aria-live="polite"></div>
+              <aside class="selection-inspector" aria-label="Selected equipment details">
+                <div class="selection-inspector__copy">
+                  <small>Selected system</small>
+                  <strong id="selectionName">Clockwork Pinions</strong>
+                  <p id="selectionBenefit">Balanced baseline flight with predictable lift, turning, and cruising speed.</p>
+                  <div class="selection-deltas" id="selectionDeltas" aria-label="Comparison with equipped item"></div>
+                </div>
+                <div class="selection-inspector__trade">
+                  <span><small>Price</small><strong id="selectionPrice">Owned</strong></span>
+                  <span><small>Balance</small><strong><i class="mini-coconut" aria-hidden="true"></i><b id="selectionBalance">120</b></strong></span>
+                  <button type="button" id="loadoutAction">Equipped</button>
+                </div>
+              </aside>
+              <p class="hangar-economy-note">Coconuts persist. Earn more from fighter takedowns, completed levels, and survival.</p>
+              <p class="hangar-status" id="hangarStatus" role="status">Choose equipment, then deploy.</p>
+              <button class="deploy-button" id="deployButton" type="button">Deploy Equipped Loadout</button>
+            </section>
+          </div>
+        </div>
+      </section>
+
+      <section
+        class="overlay upgrade-overlay"
+        id="upgradeOverlay"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="upgradeTitle"
+        aria-hidden="true"
+        hidden
+        inert
+      >
+        <div class="overlay__panel upgrade-panel">
+          <span class="overlay__kicker">FIELD MODIFICATION READY</span>
+          <h2 id="upgradeTitle">Choose an upgrade</h2>
+          <p>Vesper found a few parts that probably belong together.</p>
+          <div class="upgrade-grid" id="upgradeGrid"></div>
+          <span class="upgrade-wallet"><strong id="upgradeWallet">0</strong> coconuts secured</span>
+        </div>
+      </section>
+
+      <section
         class="overlay pause-overlay"
         id="pauseOverlay"
         role="dialog"
@@ -151,6 +247,6 @@
     </main>
 
     <script src="./audio.js?v=3"></script>
-    <script src="./game.js?v=18"></script>
+    <script src="./game.js?v=21"></script>
   </body>
 </html>
