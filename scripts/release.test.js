@@ -23,7 +23,11 @@ test("3D source integrates every gameplay module", () => {
   assert.match(source, /isBananaProjectile = true/, "player projectiles should be identifiable as bananas");
   assert.match(source, /function spawnPickup\(/, "collectible pickups should spawn during play");
   assert.match(source, /function activateRage\(/, "Go Bananas rage should be implemented");
+  assert.doesNotMatch(source, /fury >= FURY_THRESHOLD\) activateRage\(\)/, "Go Bananas should wait for player activation");
+  assert.match(source, /event\.code === "KeyG"[^\n]+activateRage\(\)/, "G should activate a charged Go Bananas ability");
   assert.match(source, /fire\(true\)/, "rage should automatically fire heavy banana rockets");
+  assert.match(source, /projectileCount = rageShot \? 1/, "rage should use a mobile-safe projectile budget");
+  assert.match(source, /\{ time: 32, name: "INTERCEPT"/, "the first level should allow a longer opening patrol");
 });
 
 test("opening briefing establishes the mission", () => {
@@ -43,6 +47,7 @@ test("opening briefing establishes the mission", () => {
   assert.match(cinematic, /To Skyshield, you do not exist/i);
   assert.match(cinematic, /Nobody has ever hacked potassium/i);
   assert.equal((cinematic.match(/\.\/assets\/voices\//g) || []).length, 14);
+  assert.match(cinematic, /const DURATION = 56/, "the cinematic should leave room for complete performances");
 });
 
 test("hangar economy purchases and equips persistent loadouts", async () => {

@@ -331,7 +331,25 @@ body {
   letter-spacing: 0.8px;
   text-transform: uppercase;
   backdrop-filter: blur(10px);
-  pointer-events: none;
+  cursor: default;
+  appearance: none;
+  box-sizing: border-box;
+}
+
+.rage-hud:disabled {
+  filter: none;
+}
+
+.rage-hud.is-ready {
+  border-color: #ffe36e;
+  background: rgba(62, 49, 10, 0.94);
+  color: #fff5b2;
+  cursor: pointer;
+  box-shadow: 0 0 22px rgba(255, 213, 64, 0.34);
+}
+
+.rage-hud.is-ready:hover {
+  filter: brightness(1.12);
 }
 
 .rage-hud > i {
@@ -362,6 +380,7 @@ body {
   background: rgba(54, 15, 8, 0.92);
   color: #fff;
   animation: rage-pulse 520ms ease-in-out infinite alternate;
+  cursor: default;
 }
 
 .rage-hud.is-active > i b {

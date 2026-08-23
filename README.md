@@ -18,15 +18,16 @@ Then visit `http://localhost:8080`.
 
 - `Space`, `W`, or `Up Arrow`: climb
 - `Enter`: throw a ballistic banana
+- `G` or `B`: activate Go Bananas when fully charged
 - `X`, `F`, or left `Shift`: alternate fire controls
 - `P` or `Escape`: pause or resume
 - `M`: mute or unmute
-- Touch: steer on the left, lift independently, and fire with the target control
+- Touch: steer on the left, lift independently, fire with the target control, and tap Go Bananas when ready
 
 ## Current 3D Edition
 
 - Cinematic Commander Vesper briefing that launches Operation: Banana Sky
-- Interactive 52-second real-time Three.js prologue tracing the Skyshield breach, Earth's loss of the sky, Wingtail's Project Canopy rescue history, his relationship with Vesper, and his analog blind-spot advantage
+- Interactive 56-second real-time Three.js prologue with preloaded voices and protected dialogue timing, tracing the Skyshield breach, Earth's loss of the sky, Wingtail's Project Canopy rescue history, his relationship with Vesper, and his analog blind-spot advantage
 - Bundled Eleven v3 performances for Vesper, Wingtail, and the emergency broadcast, with synchronized subtitles, telemetry, dialogue choices, and Skip Intro
 - Full-frontal Wingtail armory with flight rigs, banana weapons, clothing, live specs, and 120 starting coconuts
 - Seven authored equipment portraits with matched pose, anatomy, perspective, lighting, and materials for turbines, glider surfaces, mounted banana payloads, jackets, and stealth armor
@@ -38,7 +39,7 @@ Then visit `http://localhost:8080`.
 - Mid-mission upgrades for flight control, banana velocity, and coconut armor at level transitions
 - A 120-coconut minimum launch stipend on every new sortie and restart, while purchased equipment remains permanently owned
 - Airborne coconut caches and rescue bananas that add currency, score, armor recovery, and Go Bananas charge
-- An eight-second Banana Rage earned from ten fury points or four aircraft takedowns, with automatic heavy banana rockets
+- A player-triggered eight-second Banana Rage armed by ten fury points or four aircraft takedowns, with optimized heavy banana rockets
 - Realistic rear chase-view monkey flying head-first into the scene
 - Physical bank, pitch, yaw, wing, scarf, tail, and thruster animation
 - Four streamed city themes with textured facades, roads, bridges, rooftops, and skyline transitions
@@ -58,6 +59,7 @@ Then visit `http://localhost:8080`.
 6. The transmission edition turned Vesper's static briefing into a real-time interactive prologue, showing the fall of the defense network before Wingtail answers the call.
 7. The rage edition added repeat-sortie funding, airborne recovery pickups, armor restoration, fury progression, and the automatic banana-rocket overdrive.
 8. The performance edition replaced the original system voices with separately cast, emotionally directed character performances and retimed the cinematic around natural dialogue pacing.
+9. The tuning edition protected every spoken line with preloading and timing buffers, lengthened level pacing, made Go Bananas player-triggered, and reduced its active projectile load for smoother mobile play.
 
 Joseph originally began the broader game experiment in April 2026, when Codex had only recently become available to him. He later revisited Monkey No-Fly Zone as a teaching example for his intern, his CEO's 17-year-old son, to show that coding and AI could produce a real playable game rather than only snippets or mockups. Small changes to the instructions, combined with focused sub-agent reviews and repeated hands-on testing, drove the progression from the early arcade loop to this 3D release.
 
@@ -73,7 +75,7 @@ npm run build
 npm test
 ```
 
-The build produces `game.js`, embeds every referenced image and voice track into `monkey-no-fly-zone-standalone.html`, and verifies 75 required DOM hooks plus bundle integrity. The current release bundles nine modules into 653.8 KB, passes nine automated tests across the source and standalone release, and ships as a self-contained 18.29 MB HTML game.
+The build produces `game.js`, embeds every referenced image and voice track into `monkey-no-fly-zone-standalone.html`, and verifies 75 required DOM hooks plus bundle integrity. The current release bundles nine modules into 654.4 KB, passes nine automated tests across the source and standalone release, and ships as a self-contained 18.29 MB HTML game.
 
 ## Project Layout
 

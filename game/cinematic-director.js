@@ -1,8 +1,25 @@
 import * as THREE from "../vendor/three.module.min.js";
 
-const DURATION = 51.6;
-const GLOBE_END = 6.55;
-const CITY_END = 13.45;
+const DURATION = 56;
+const GLOBE_END = 7.05;
+const CITY_END = 14.4;
+
+export const CINEMATIC_VOICE_ASSETS = Object.freeze([
+  "./assets/voices/01-skyshield-breach.mp3",
+  "./assets/voices/02-earth-loses-sky.mp3",
+  "./assets/voices/03-rescue-ace.mp3",
+  "./assets/voices/04-direction.mp3",
+  "./assets/voices/05-office.mp3",
+  "./assets/voices/06-found-you.mp3",
+  "./assets/voices/07-first-wings.mp3",
+  "./assets/voices/08-invisible-pilot.mp3",
+  "./assets/voices/09-recognition.mp3",
+  "./assets/voices/10-mission.mp3",
+  "./assets/voices/11-open-armory.mp3",
+  "./assets/voices/12-why-bananas.mp3",
+  "./assets/voices/13-armory-response.mp3",
+  "./assets/voices/14-potassium.mp3",
+]);
 
 function ease(value) {
   const t = Math.max(0, Math.min(1, value));
@@ -192,7 +209,7 @@ export function createCinematicDirector({
       at: 0,
       speaker: "Emergency broadcast",
       text: "At 04:17, Black Flag uploaded a command virus during a global defense drill.",
-      voice: "./assets/voices/01-skyshield-breach.mp3",
+      voice: CINEMATIC_VOICE_ASSETS[0],
       subject: "globe",
       telemetry: ["SKYSHIELD DRILL // ACTIVE", "COMMAND VIRUS // UPLOADED"],
     },
@@ -200,7 +217,7 @@ export function createCinematicDirector({
       at: GLOBE_END,
       speaker: "Emergency broadcast",
       text: "Skyshield seized every connected aircraft and turned Earth's defenses against its cities.",
-      voice: "./assets/voices/02-earth-loses-sky.mp3",
+      voice: CINEMATIC_VOICE_ASSETS[1],
       subject: "city",
       telemetry: ["IFF DATABASE // REWRITTEN", "DEFENSE FLEET // HOSTILE"],
     },
@@ -208,63 +225,63 @@ export function createCinematicDirector({
       at: CITY_END,
       speaker: "Commander Vesper",
       text: "I know one pilot it never studied. Project Canopy's analog rescue ace.",
-      voice: "./assets/voices/03-rescue-ace.mp3",
+      voice: CINEMATIC_VOICE_ASSETS[2],
       subject: "vesper",
       telemetry: ["PROJECT CANOPY // OFF-GRID", "RESCUE ACE // WINGTAIL"],
     },
     {
-      at: 19.75,
+      at: 21.1,
       speaker: "Wingtail",
       text: "You forgot my excellent sense of direction.",
-      voice: "./assets/voices/04-direction.mp3",
+      voice: CINEMATIC_VOICE_ASSETS[3],
       subject: "wingtail",
       telemetry: ["CANOPY RESCUES // 47", "UNAUTHORIZED LANDINGS // 12"],
     },
     {
-      at: 22.25,
+      at: 24.05,
       speaker: "Commander Vesper",
       text: "You landed in my office.",
-      voice: "./assets/voices/05-office.mp3",
+      voice: CINEMATIC_VOICE_ASSETS[4],
       subject: "vesper",
       telemetry: ["VESPER'S OFFICE // REPAIRED", "INCIDENT REPORT // SEALED"],
     },
     {
-      at: 24,
+      at: 26.28,
       speaker: "Wingtail",
       text: "I found you.",
-      voice: "./assets/voices/06-found-you.mp3",
+      voice: CINEMATIC_VOICE_ASSETS[5],
       subject: "wingtail",
       telemetry: ["FLIGHT LOG // DISPUTED"],
     },
     {
-      at: 25.35,
+      at: 28.12,
       speaker: "Commander Vesper",
       text: "I built your wings. You crossed three cyclones and brought forty-seven people home.",
-      voice: "./assets/voices/07-first-wings.mp3",
+      voice: CINEMATIC_VOICE_ASSETS[6],
       subject: "vesper",
       telemetry: ["ANALOG WING RIG // VESPER MK I", "CIVILIANS RECOVERED // 47"],
     },
     {
-      at: 32,
+      at: 35.23,
       speaker: "Commander Vesper",
       text: "No biometric profile. No digital controls. No guided weapons. To Skyshield, you do not exist.",
-      voice: "./assets/voices/08-invisible-pilot.mp3",
+      voice: CINEMATIC_VOICE_ASSETS[7],
       subject: "wingtail",
       telemetry: ["BIO-SIGNATURE // NO MATCH", "FLIGHT SYSTEM // ANALOG", "ORDNANCE // UNHACKABLE"],
     },
     {
-      at: 42.35,
+      at: 46.02,
       speaker: "Wingtail",
       text: "Finally. Professional recognition.",
-      voice: "./assets/voices/09-recognition.mp3",
+      voice: CINEMATIC_VOICE_ASSETS[8],
       subject: "wingtail",
       telemetry: ["SKYSHIELD VISIBILITY // ZERO"],
     },
     {
-      at: 45,
+      at: 49.13,
       speaker: "Commander Vesper",
       text: "Destroy the command relays and give humanity back its sky. Are you in?",
-      voice: "./assets/voices/10-mission.mp3",
+      voice: CINEMATIC_VOICE_ASSETS[9],
       subject: "vesper",
       telemetry: ["MISSION // OPERATION BANANA SKY", "PRIMARY TARGET // COMMAND RELAYS"],
     },
@@ -401,18 +418,18 @@ export function createCinematicDirector({
     onCue({
       speaker: "Wingtail",
       text: choice === "doubt" ? "One question. Why bananas?" : "Open the armory. Let's make history nervous.",
-      voice: choice === "doubt" ? "./assets/voices/12-why-bananas.mp3" : "./assets/voices/11-open-armory.mp3",
+      voice: choice === "doubt" ? CINEMATIC_VOICE_ASSETS[11] : CINEMATIC_VOICE_ASSETS[10],
       telemetry: ["WINGTAIL // MISSION ACCEPTANCE PENDING"],
       progress: 1,
     });
-    const responseDelay = choice === "doubt" ? 3200 : 3700;
-    const completionDelay = choice === "doubt" ? 7150 : 6050;
+    const responseDelay = choice === "doubt" ? 3500 : 4000;
+    const completionDelay = choice === "doubt" ? 7700 : 6500;
     const first = setTimeout(() => {
       showPortrait("vesper");
       onCue({
         speaker: "Commander Vesper",
         text: choice === "doubt" ? "Because nobody has ever hacked potassium." : "That's the rescue ace I remember.",
-        voice: choice === "doubt" ? "./assets/voices/14-potassium.mp3" : "./assets/voices/13-armory-response.mp3",
+        voice: choice === "doubt" ? CINEMATIC_VOICE_ASSETS[13] : CINEMATIC_VOICE_ASSETS[12],
         telemetry: ["OPERATION BANANA SKY // AUTHORIZED"],
         progress: 1,
       });

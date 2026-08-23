@@ -2,7 +2,7 @@ import * as THREE from "./vendor/three.module.min.js";
 import * as PlayerVisual from "./game/player-visual.js";
 import { createCityStream } from "./game/city-stream.js";
 import { createCombatDirector } from "./game/combat-director.js";
-import { createCinematicDirector } from "./game/cinematic-director.js";
+import { CINEMATIC_VOICE_ASSETS, createCinematicDirector } from "./game/cinematic-director.js";
 import {
   CATALOG,
   FIELD_UPGRADES,
@@ -107,14 +107,16 @@ import * as GameVFX from "./game/vfx.js";
   const PLAYER_Z = 1.4;
   const FURY_THRESHOLD = 10;
   const RAGE_DURATION = 8;
+  const RAGE_FIRE_INTERVAL = 0.34;
+  const MAX_ACTIVE_SHOTS = 36;
   const LAUNCH_BUDGET = 120;
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   const LEVELS = [
     { time: 0, name: "PATROL", threat: 20, spawn: 2.15, maxJets: 3, missileChance: 0.2, missileCap: 1, speed: 16, sky: 0x162c39, fog: 0x25424d, city: 0x263b43, lights: 0x58dfc1 },
-    { time: 22, name: "INTERCEPT", threat: 46, spawn: 1.82, maxJets: 4, missileChance: 0.38, missileCap: 1, speed: 18.5, sky: 0x392c33, fog: 0x62464a, city: 0x332f38, lights: 0xe8c454 },
-    { time: 52, name: "MISSILE LOCK", threat: 74, spawn: 1.55, maxJets: 5, missileChance: 0.56, missileCap: 2, speed: 21, sky: 0x17202c, fog: 0x353b4b, city: 0x202936, lights: 0xff704f },
-    { time: 92, name: "OVERDRIVE", threat: 100, spawn: 1.28, maxJets: 6, missileChance: 0.72, missileCap: 3, speed: 24, sky: 0x220f17, fog: 0x4a2227, city: 0x251a21, lights: 0xff4f38 },
+    { time: 32, name: "INTERCEPT", threat: 46, spawn: 1.82, maxJets: 4, missileChance: 0.38, missileCap: 1, speed: 18.5, sky: 0x392c33, fog: 0x62464a, city: 0x332f38, lights: 0xe8c454 },
+    { time: 72, name: "MISSILE LOCK", threat: 74, spawn: 1.55, maxJets: 5, missileChance: 0.56, missileCap: 2, speed: 21, sky: 0x17202c, fog: 0x353b4b, city: 0x202936, lights: 0xff704f },
+    { time: 122, name: "OVERDRIVE", threat: 100, spawn: 1.28, maxJets: 6, missileChance: 0.72, missileCap: 3, speed: 24, sky: 0x220f17, fog: 0x4a2227, city: 0x251a21, lights: 0xff4f38 },
   ];
 
   const AIRCRAFT = {
@@ -128,6 +130,13 @@ import * as GameVFX from "./game/vfx.js";
   let cinematic;
   const cinematicVoice = new Audio();
   cinematicVoice.preload = "auto";
+  const cinematicVoicePreloads = CINEMATIC_VOICE_ASSETS.map((source) => {
+    const voice = new Audio();
+    voice.preload = "auto";
+    voice.src = source;
+    voice.load();
+    return voice;
+  });
   let scene;
   let camera;
   let cityStream;
@@ -168,6 +177,7 @@ import * as GameVFX from "./game/vfx.js";
   let fury = 0;
   let rageTimer = 0;
   let rageAutoFire = 0;
+  let rageReadyAnnounced = false;
   let pickupTimer = 2.4;
   let takedowns = 0;
   let best = Number(localStorage.getItem("monkeyNoFlyBest3D") || localStorage.getItem("monkeyNoFlyBest") || 0);
@@ -917,6 +927,7 @@ import * as GameVFX from "./game/vfx.js";
     stopCinematicVoice();
     cinematic?.dispose();
     cinematic = null;
+    cinematicVoicePreloads.splice(0);
     cinematicSlate.hidden = true;
     cinematicTelemetry.hidden = true;
     cinematicDialogue.hidden = true;
@@ -947,6 +958,7 @@ import * as GameVFX from "./game/vfx.js";
     fury = 0;
     rageTimer = 0;
     rageAutoFire = 0;
+    rageReadyAnnounced = false;
     pickupTimer = 2.4;
     takedowns = 0;
     currentLevel = 0;
@@ -985,7 +997,10 @@ import * as GameVFX from "./game/vfx.js";
     pauseButton.disabled = false;
     if (liftButton) liftButton.disabled = false;
     combatDirector?.start({ levelIndex: 0, delay: 0.85 });
+    audio.init?.();
+    audio.setPaused?.(false);
     audio.startRun?.(0);
+    updateRageHud();
     canvas.focus({ preventScroll: true });
     announce("3D flight started.");
   }
@@ -1027,7 +1042,7 @@ import * as GameVFX from "./game/vfx.js";
   }
 
   function updateWeaponCooldown() {
-    const cooldown = rageTimer > 0 ? 0.14 : runStats.cooldown;
+    const cooldown = rageTimer > 0 ? RAGE_FIRE_INTERVAL : runStats.cooldown;
     const charge = Math.round(clamp(1 - shotCooldown / cooldown, 0, 1) * 100);
     weaponCooldown?.style.setProperty("--weapon-charge", String(charge));
     weaponCooldown?.setAttribute("aria-valuenow", String(charge));
@@ -1035,33 +1050,45 @@ import * as GameVFX from "./game/vfx.js";
 
   function updateRageHud() {
     const active = rageTimer > 0;
+    const ready = !active && fury >= FURY_THRESHOLD;
     const charge = active ? clamp(rageTimer / RAGE_DURATION, 0, 1) : clamp(fury / FURY_THRESHOLD, 0, 1);
     rageHud?.classList.toggle("is-active", active);
-    if (rageLabel) rageLabel.textContent = active ? "Banana Rage" : "Go Bananas";
-    if (rageCount) rageCount.textContent = active ? `${rageTimer.toFixed(1)}s` : `${Math.floor(fury)} / ${FURY_THRESHOLD}`;
+    rageHud?.classList.toggle("is-ready", ready);
+    if (rageHud) {
+      rageHud.disabled = !ready || state !== "playing";
+      rageHud.setAttribute("aria-label", active ? "Go Bananas active" : ready ? "Activate Go Bananas" : "Go Bananas charge");
+    }
+    if (rageLabel) rageLabel.textContent = active ? "Banana Rage" : ready ? "Go Bananas Ready" : "Go Bananas";
+    if (rageCount) rageCount.textContent = active ? `${rageTimer.toFixed(1)}s` : ready ? "READY" : `${Math.floor(fury)} / ${FURY_THRESHOLD}`;
     rageMeter?.style.setProperty("width", `${Math.round(charge * 100)}%`);
     rageMeter?.parentElement?.setAttribute("aria-valuenow", String(active ? Math.ceil(rageTimer) : Math.floor(fury)));
     rageMeter?.parentElement?.setAttribute("aria-valuemax", String(active ? RAGE_DURATION : FURY_THRESHOLD));
   }
 
   function activateRage() {
-    if (rageTimer > 0) return;
+    if (state !== "playing" || rageTimer > 0 || fury < FURY_THRESHOLD) return false;
     fury = 0;
     rageTimer = RAGE_DURATION;
     rageAutoFire = 0;
+    rageReadyAnnounced = false;
     awardSkill("GO BANANAS", 750);
     GameVFX.spawn(vfxManager, "hitFlash", { color: 0xffb52e, intensity: 0.7, impulse: 0.32 });
     audio.playLevel?.(3);
     updateRageHud();
     announce("Go Bananas activated. Heavy banana rockets online for eight seconds.");
+    return true;
   }
 
   function addFury(amount) {
     if (rageTimer > 0) {
       rageTimer = Math.min(RAGE_DURATION + 2, rageTimer + Number(amount || 0) * 0.18);
     } else {
+      const wasReady = fury >= FURY_THRESHOLD;
       fury = Math.min(FURY_THRESHOLD, fury + Math.max(0, Number(amount) || 0));
-      if (fury >= FURY_THRESHOLD) activateRage();
+      if (!wasReady && fury >= FURY_THRESHOLD && !rageReadyAnnounced) {
+        rageReadyAnnounced = true;
+        announce("Go Bananas is ready.");
+      }
     }
     updateRageHud();
   }
@@ -1073,7 +1100,7 @@ import * as GameVFX from "./game/vfx.js";
     if (rageAutoFire <= 0) {
       shotCooldown = 0;
       fire(true);
-      rageAutoFire = 0.16;
+      rageAutoFire = RAGE_FIRE_INTERVAL;
     }
     if (rageTimer <= 0) {
       rageHud?.classList.remove("is-active");
@@ -1084,7 +1111,7 @@ import * as GameVFX from "./game/vfx.js";
 
   function fire(rageShot = rageTimer > 0) {
     if (state !== "playing" || shotCooldown > 0) return;
-    shotCooldown = rageShot ? 0.14 : runStats.cooldown;
+    shotCooldown = rageShot ? RAGE_FIRE_INTERVAL : runStats.cooldown;
     const target = findAimTarget();
     const direction = new THREE.Vector3(0, 0, -1);
     if (target) {
@@ -1092,8 +1119,8 @@ import * as GameVFX from "./game/vfx.js";
       direction.lerp(tempV, innerWidth <= 700 ? 0.82 : 0.68).normalize();
     }
     const weaponId = profile.equipped.weapon;
-    const projectileCount = rageShot ? Math.max(3, runStats.projectiles) : runStats.projectiles;
-    const spread = rageShot ? Math.max(0.045, runStats.spread) : runStats.spread;
+    const projectileCount = rageShot ? 1 : runStats.projectiles;
+    const spread = rageShot ? 0 : runStats.spread;
     for (let index = 0; index < projectileCount; index += 1) {
       const offset = index - (projectileCount - 1) / 2;
       const shotDirection = direction.clone();
@@ -1101,6 +1128,10 @@ import * as GameVFX from "./game/vfx.js";
       shotDirection.y += Math.abs(offset) * spread * 0.16;
       shotDirection.normalize();
       const view = createShotView(weaponId, rageShot);
+      if (shots.length >= MAX_ACTIVE_SHOTS) {
+        const oldest = shots.shift();
+        removeView(oldest?.view);
+      }
       view.position.set(monkey.x + offset * 0.16, monkey.y, monkey.z - 0.9);
       scene.add(view);
       const shot = {
@@ -1527,7 +1558,7 @@ import * as GameVFX from "./game/vfx.js";
       }
       shot.trailTimer -= dt;
       if (shot.trailTimer <= 0) {
-        shot.trailTimer = mobileMode ? 0.06 : 0.035;
+        shot.trailTimer = shot.rage ? 0.09 : mobileMode ? 0.06 : 0.035;
         GameVFX.spawn(vfxManager, "projectileTrail", {
           start: shot.previous,
           end: shot.view.position,
@@ -1710,6 +1741,7 @@ import * as GameVFX from "./game/vfx.js";
   function gameOver(reason) {
     if (state !== "playing") return;
     state = "crashing";
+    updateRageHud();
     shootButton.disabled = true;
     if (liftButton) liftButton.disabled = true;
     keys.delete("TouchLift");
@@ -1746,6 +1778,7 @@ import * as GameVFX from "./game/vfx.js";
     if (state !== "playing") return;
     pausedFrom = state;
     state = "paused";
+    updateRageHud();
     pauseOverlay.hidden = false;
     pauseOverlay.inert = false;
     pauseOverlay.setAttribute("aria-hidden", "false");
@@ -1759,6 +1792,7 @@ import * as GameVFX from "./game/vfx.js";
   function resumeGame() {
     if (state !== "paused") return;
     state = pausedFrom;
+    updateRageHud();
     pauseOverlay.setAttribute("aria-hidden", "true");
     pauseOverlay.hidden = true;
     pauseOverlay.inert = true;
@@ -1859,6 +1893,7 @@ import * as GameVFX from "./game/vfx.js";
     updateMuteControl();
   });
   shootButton.addEventListener("pointerdown", (event) => { event.preventDefault(); event.stopPropagation(); fire(); });
+  rageHud?.addEventListener("click", activateRage);
   steerZone?.addEventListener("pointerdown", beginSteering);
   steerZone?.addEventListener("pointermove", updateSteeringFromPointer);
   steerZone?.addEventListener("pointerup", endSteering);
@@ -1912,6 +1947,7 @@ import * as GameVFX from "./game/vfx.js";
       if (event.code === "KeyA" || event.code === "ArrowLeft") changeLane(-1);
       if (event.code === "KeyD" || event.code === "ArrowRight") changeLane(1);
       if (event.code === "Enter" || event.code === "KeyX" || event.code === "KeyF" || event.code === "ShiftLeft") fire();
+      if (event.code === "KeyG" || event.code === "KeyB") activateRage();
       if (event.code === "Escape" || event.code === "KeyP") pauseGame();
     } else if (state === "paused" && (event.code === "Escape" || event.code === "KeyP")) resumeGame();
   });
