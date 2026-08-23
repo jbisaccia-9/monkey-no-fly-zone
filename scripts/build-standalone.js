@@ -2,8 +2,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 const {
   assertNonEmptyFile,
-  collectImageReferences,
-  inlineImageReferences,
+  collectAssetReferences,
+  inlineAssetReferences,
   readArgument,
   readWebFile,
   replaceRequired,
@@ -21,12 +21,12 @@ let gameSource = fs.readFileSync(gamePath, "utf8");
 let stylesSource = readWebFile("styles.css");
 let audioSource = readWebFile("audio.js");
 let html = readWebFile("index.html");
-const assetFiles = collectImageReferences(gameSource, stylesSource, audioSource, html);
+const assetFiles = collectAssetReferences(gameSource, stylesSource, audioSource, html);
 
-gameSource = inlineImageReferences(gameSource, assetFiles);
-stylesSource = inlineImageReferences(stylesSource, assetFiles);
-audioSource = inlineImageReferences(audioSource, assetFiles);
-html = inlineImageReferences(html, assetFiles);
+gameSource = inlineAssetReferences(gameSource, assetFiles);
+stylesSource = inlineAssetReferences(stylesSource, assetFiles);
+audioSource = inlineAssetReferences(audioSource, assetFiles);
+html = inlineAssetReferences(html, assetFiles);
 
 const escapeScript = (source) => source.replace(/<\/script/gi, "<\\/script");
 html = replaceRequired(
@@ -57,8 +57,8 @@ html = [
   html,
 ].join("\n");
 
-if (/(?:\.\/)?assets\/[A-Za-z0-9._/-]+\.(?:avif|gif|jpe?g|png|svg|webp)/i.test(html)) {
-  throw new Error("Standalone output still contains a local image reference.");
+if (/(?:\.\/)?assets\/[A-Za-z0-9._/-]+\.(?:avif|gif|jpe?g|m4a|mp3|ogg|png|svg|wav|webp)/i.test(html)) {
+  throw new Error("Standalone output still contains a local media reference.");
 }
 const standaloneShell = stripInlineBlocks(html);
 const unresolvedTag = standaloneShell.match(/<(?:link|script)\s+[^>\r\n]*(?:href|src)="\.\//i);
@@ -69,4 +69,4 @@ if (unresolvedTag) {
 
 writeFileAtomic(outputPath, html);
 const bytes = assertNonEmptyFile(outputPath, 64 * 1024, "Standalone game");
-console.log(`Built ${outputPath} (${(bytes / 1024 / 1024).toFixed(2)} MB) with ${assetFiles.length} embedded image assets.`);
+console.log(`Built ${outputPath} (${(bytes / 1024 / 1024).toFixed(2)} MB) with ${assetFiles.length} embedded media assets.`);

@@ -1,6 +1,6 @@
 import * as THREE from "../vendor/three.module.min.js";
 
-const DURATION = 14;
+const DURATION = 39;
 
 function ease(value) {
   const t = Math.max(0, Math.min(1, value));
@@ -189,38 +189,82 @@ export function createCinematicDirector({
     {
       at: 0,
       speaker: "Emergency broadcast",
-      text: "A rogue cell seized the world's autonomous strike network.",
-      telemetry: ["STRIKE NETWORK // HIJACKED", "GLOBAL COMMAND // LOST"],
+      text: "At 04:17, Black Flag uploaded a command virus during a global defense drill.",
+      voice: "./assets/voices/01-skyshield-breach.mp3",
+      subject: "globe",
+      telemetry: ["SKYSHIELD DRILL // ACTIVE", "COMMAND VIRUS // UPLOADED"],
     },
     {
-      at: 2.8,
-      speaker: "Skyshield command",
-      text: "They rewrote its identification system. Our own fighters turned on every city still resisting.",
+      at: 5.3,
+      speaker: "Emergency broadcast",
+      text: "Skyshield seized every connected aircraft and turned Earth's defenses against its cities.",
+      voice: "./assets/voices/02-earth-loses-sky.mp3",
+      subject: "city",
       telemetry: ["IFF DATABASE // REWRITTEN", "DEFENSE FLEET // HOSTILE"],
     },
     {
-      at: 5.7,
-      speaker: "Evacuation channel",
-      text: "Every human pilot and networked aircraft was locked out of the sky.",
-      telemetry: ["HUMAN PILOTS // LOCKED OUT", "DIGITAL FLIGHT SYSTEMS // COMPROMISED"],
+      at: 10.2,
+      speaker: "Commander Vesper",
+      text: "I know one pilot it never studied. Project Canopy's analog rescue ace.",
+      voice: "./assets/voices/03-rescue-ace.mp3",
+      subject: "vesper",
+      telemetry: ["PROJECT CANOPY // OFF-GRID", "RESCUE ACE // WINGTAIL"],
     },
     {
-      at: 7.6,
-      speaker: "Commander Vesper",
-      text: "Their targeting model knows every human face, aircraft, and weapon on Earth.",
-      telemetry: ["ENEMY TARGET MODEL // HUMAN", "KNOWN AIRCRAFT // TRACKED"],
+      at: 14.7,
+      speaker: "Wingtail",
+      text: "You forgot my excellent sense of direction.",
+      voice: "./assets/voices/04-direction.mp3",
+      subject: "wingtail",
+      telemetry: ["CANOPY RESCUES // 47", "UNAUTHORIZED LANDINGS // 12"],
     },
     {
-      at: 10.1,
+      at: 17.6,
       speaker: "Commander Vesper",
-      text: "But it has no record of you. Your biology is unknown, your wings are analog, and your bananas cannot be hacked.",
-      telemetry: ["BIO-SIGNATURE // UNKNOWN", "FLIGHT SYSTEM // ANALOG", "ORDNANCE // UNHACKABLE"],
+      text: "You landed in my office.",
+      voice: "./assets/voices/05-office.mp3",
+      subject: "vesper",
+      telemetry: ["VESPER'S OFFICE // REPAIRED", "INCIDENT REPORT // SEALED"],
     },
     {
-      at: 12.6,
+      at: 19.1,
+      speaker: "Wingtail",
+      text: "I found you.",
+      voice: "./assets/voices/06-found-you.mp3",
+      subject: "wingtail",
+      telemetry: ["FLIGHT LOG // DISPUTED"],
+    },
+    {
+      at: 20.4,
       speaker: "Commander Vesper",
-      text: "Wingtail, you are the one blind spot left in their sky. Will you fly?",
-      telemetry: ["MISSION CANDIDATE // WINGTAIL", "SURVIVAL PROBABILITY // CLASSIFIED"],
+      text: "I built your wings. You crossed three cyclones and brought forty-seven people home.",
+      voice: "./assets/voices/07-first-wings.mp3",
+      subject: "vesper",
+      telemetry: ["ANALOG WING RIG // VESPER MK I", "CIVILIANS RECOVERED // 47"],
+    },
+    {
+      at: 25,
+      speaker: "Commander Vesper",
+      text: "No biometric profile. No digital controls. No guided weapons. To Skyshield, you do not exist.",
+      voice: "./assets/voices/08-invisible-pilot.mp3",
+      subject: "wingtail",
+      telemetry: ["BIO-SIGNATURE // NO MATCH", "FLIGHT SYSTEM // ANALOG", "ORDNANCE // UNHACKABLE"],
+    },
+    {
+      at: 32,
+      speaker: "Wingtail",
+      text: "Finally. Professional recognition.",
+      voice: "./assets/voices/09-recognition.mp3",
+      subject: "wingtail",
+      telemetry: ["SKYSHIELD VISIBILITY // ZERO"],
+    },
+    {
+      at: 35,
+      speaker: "Commander Vesper",
+      text: "Destroy the command relays and give humanity back its sky. Are you in?",
+      voice: "./assets/voices/10-mission.mp3",
+      subject: "vesper",
+      telemetry: ["MISSION // OPERATION BANANA SKY", "PRIMARY TARGET // COMMAND RELAYS"],
     },
   ];
 
@@ -261,7 +305,7 @@ export function createCinematicDirector({
 
   function updateScene(time) {
     updateCue(time);
-    if (time < 2.8) {
+    if (time < 5.3) {
       threatGlobe.visible = true;
       lockout.visible = false;
       city.visible = false;
@@ -276,16 +320,16 @@ export function createCinematicDirector({
       threatGlobe.rotation.x = Math.sin(time * 0.55) * 0.08;
       threatGlobe.userData.shell.material.color.setHex(time > 1.5 ? 0xff4b42 : 0x48d8d0);
       warning.intensity = ease((time - 1.2) / 1.3) * 4;
-    } else if (time < 7.6) {
+    } else if (time < 10.2) {
       threatGlobe.visible = false;
       city.visible = true;
       ground.visible = true;
-      lockout.visible = time >= 5.7;
+      lockout.visible = false;
       frame.visible = false;
       vesper.mesh.visible = false;
       wingtail.mesh.visible = false;
-      const cityTime = time - 2.8;
-      const pathTime = reducedMotion ? Math.floor(cityTime / 1.2) / 4 : ease(cityTime / 4.8);
+      const cityTime = time - 5.3;
+      const pathTime = reducedMotion ? Math.floor(cityTime / 1.2) / 4 : ease(cityTime / 4.9);
       camera.position.copy(path.getPoint(Math.min(0.98, pathTime)));
       target.set(0, 1.1, camera.position.z - 13);
       camera.lookAt(target);
@@ -294,18 +338,21 @@ export function createCinematicDirector({
         jet.position.x = -9 - index * 2.2 + cityTime * (4.8 + index * 0.35);
         jet.position.y += Math.sin(time * 2.2 + index) * 0.002;
       });
-      const blackout = ease((time - 4.4) / 2.1);
+      const blackout = ease((time - 6.5) / 2.2);
       city.userData.material.emissiveIntensity = 0.44 * (1 - blackout) + 0.035;
       warning.intensity = blackout * 7;
-      const blastTime = Math.max(0, Math.min(1, (time - 4.8) / 1.2));
+      const blastTime = Math.max(0, Math.min(1, (time - 7.4) / 1.3));
       blast.material.opacity = Math.sin(blastTime * Math.PI) * 0.88;
       blast.scale.setScalar(1 + blastTime * 6);
+      lockout.visible = time >= 8.1;
       if (lockout.visible) {
         lockout.rotation.z = reducedMotion ? 0 : Math.sin(time * 4) * 0.025;
-        lockout.scale.setScalar(0.92 + ease((time - 5.7) / 0.5) * 0.08);
+        lockout.scale.setScalar(0.92 + ease((time - 8.1) / 0.5) * 0.08);
       }
     } else {
-      showPortrait(time < 10.1 ? "vesper" : "wingtail");
+      let activeCue = cues[0];
+      for (const cue of cues) if (time >= cue.at) activeCue = cue;
+      showPortrait(activeCue.subject === "wingtail" ? "wingtail" : "vesper");
       const pulse = 1 + Math.sin(time * 3.4) * 0.006;
       (vesper.mesh.visible ? vesper.mesh : wingtail.mesh).scale.setScalar(reducedMotion ? 1 : pulse);
     }
@@ -350,7 +397,8 @@ export function createCinematicDirector({
     showPortrait("wingtail");
     onCue({
       speaker: "Wingtail",
-      text: choice === "doubt" ? "I am the plan because I am not human?" : "Their system cannot track me. Open the armory.",
+      text: choice === "doubt" ? "One question. Why bananas?" : "Open the armory. Let's make history nervous.",
+      voice: choice === "doubt" ? "./assets/voices/12-why-bananas.mp3" : "./assets/voices/11-open-armory.mp3",
       telemetry: ["WINGTAIL // MISSION ACCEPTANCE PENDING"],
       progress: 1,
     });
@@ -358,12 +406,13 @@ export function createCinematicDirector({
       showPortrait("vesper");
       onCue({
         speaker: "Commander Vesper",
-        text: choice === "doubt" ? "You are the only pilot their system was never taught to recognize." : "Exactly. Stay off their network and make every banana count.",
+        text: choice === "doubt" ? "Because nobody has ever hacked potassium." : "That's the rescue ace I remember.",
+        voice: choice === "doubt" ? "./assets/voices/14-potassium.mp3" : "./assets/voices/13-armory-response.mp3",
         telemetry: ["OPERATION BANANA SKY // AUTHORIZED"],
         progress: 1,
       });
-    }, 1500);
-    const second = setTimeout(() => finish(false), 3300);
+    }, 3500);
+    const second = setTimeout(() => finish(false), 5900);
     timers.add(first);
     timers.add(second);
   }

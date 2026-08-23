@@ -1,32 +1,35 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 const {
-  collectImageReferences,
-  inlineImageReferences,
+  collectAssetReferences,
+  inlineAssetReferences,
   replaceRequired,
   stripInlineBlocks,
 } = require("./build-helpers");
 
-test("collects unique image references from bundled and styled sources", () => {
+test("collects unique media references from bundled and styled sources", () => {
   assert.deepEqual(
-    collectImageReferences(
+    collectAssetReferences(
       'const hero = "./assets/hero-monkey-chase-v2-chroma.png";',
       'background-image: url("assets/skyline-level-1.jpg")',
       'const duplicate = "./assets/hero-monkey-chase-v2-chroma.png";',
+      'const voice = "./assets/voices/wingtail.mp3";',
     ),
-    ["hero-monkey-chase-v2-chroma.png", "skyline-level-1.jpg"],
+    ["hero-monkey-chase-v2-chroma.png", "skyline-level-1.jpg", "voices/wingtail.mp3"],
   );
 });
 
-test("inlines every discovered image reference", () => {
+test("inlines every discovered media reference", () => {
   const source = [
     'const hero = "./assets/hero-monkey-chase-v2-chroma.png";',
     'const skyline = "./assets/skyline-level-1.jpg";',
+    'const voice = "./assets/voices/01-skyshield-breach.mp3";',
   ].join("\n");
-  const output = inlineImageReferences(source, collectImageReferences(source));
+  const output = inlineAssetReferences(source, collectAssetReferences(source));
 
   assert.match(output, /data:image\/png;base64,/);
   assert.match(output, /data:image\/jpeg;base64,/);
+  assert.match(output, /data:audio\/mpeg;base64,/);
   assert.doesNotMatch(output, /assets\//);
 });
 

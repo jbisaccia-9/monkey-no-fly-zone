@@ -118,6 +118,8 @@ import * as GameVFX from "./game/vfx.js";
 
   let renderer;
   let cinematic;
+  const cinematicVoice = new Audio();
+  cinematicVoice.preload = "auto";
   let scene;
   let camera;
   let cityStream;
@@ -367,6 +369,12 @@ import * as GameVFX from "./game/vfx.js";
     loadoutItems.replaceChildren(...CATALOG[category].map((item) => makeLoadoutItem(item, category)));
     updateSelectionInspector();
     updateHangarPreview();
+    if (matchMedia("(max-width: 700px) and (min-height: 501px)").matches) {
+      requestAnimationFrame(() => {
+        const selected = loadoutItems.querySelector('[aria-pressed="true"]');
+        if (selected) loadoutItems.scrollTo({ left: selected.offsetLeft - (loadoutItems.clientWidth - selected.offsetWidth) / 2, behavior: "auto" });
+      });
+    }
   }
 
   function showHangar() {
@@ -761,28 +769,26 @@ import * as GameVFX from "./game/vfx.js";
       cinematicTelemetry.hidden = false;
       cinematicTelemetry.setAttribute("aria-hidden", "false");
     }
-    if (cue.speaker && cue.text) speakCinematicLine(cue.speaker, cue.text);
+    if (cue.voice) playCinematicVoice(cue.voice);
     if (cue.speaker === "Skyshield command") audio.playMissileLaunch?.();
     else if (cue.speaker === "Evacuation channel") audio.playImpact?.(true);
     else if (cue.speaker === "Commander Vesper") audio.playLevel?.();
   }
 
-  function speakCinematicLine(speaker, text) {
-    if (audio.isMuted?.() || !("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") return;
-    const line = new SpeechSynthesisUtterance(text);
-    line.volume = 0.78;
-    if (speaker === "Commander Vesper") {
-      line.pitch = 0.68;
-      line.rate = 0.9;
-    } else if (speaker === "Wingtail") {
-      line.pitch = 1.12;
-      line.rate = 1.02;
-    } else {
-      line.pitch = 0.84;
-      line.rate = 0.96;
-    }
-    speechSynthesis.cancel();
-    speechSynthesis.speak(line);
+  function playCinematicVoice(source) {
+    cinematicVoice.pause();
+    cinematicVoice.currentTime = 0;
+    cinematicVoice.src = source;
+    cinematicVoice.muted = Boolean(audio.isMuted?.());
+    cinematicVoice.volume = 0.92;
+    cinematicVoice.play().catch(() => {});
+  }
+
+  function stopCinematicVoice() {
+    cinematicVoice.pause();
+    cinematicVoice.currentTime = 0;
+    cinematicVoice.removeAttribute("src");
+    cinematicVoice.load();
   }
 
   function startCinematic() {
@@ -796,7 +802,7 @@ import * as GameVFX from "./game/vfx.js";
     state = "cinematic";
     audio.init?.();
     audio.setPaused?.(false);
-    window.speechSynthesis?.cancel();
+    stopCinematicVoice();
     overlay.dataset.mode = "cinematic";
     overlayTitle.hidden = true;
     overlayText.hidden = true;
@@ -840,7 +846,7 @@ import * as GameVFX from "./game/vfx.js";
     briefingPhase = "complete";
     localStorage.setItem("monkeySeeMonkeyPewIntroSeen", "1");
     audio.setPaused?.(true);
-    window.speechSynthesis?.cancel();
+    stopCinematicVoice();
     cinematic?.dispose();
     cinematic = null;
     cinematicSlate.hidden = true;
@@ -1641,7 +1647,7 @@ import * as GameVFX from "./game/vfx.js";
   restartButton.addEventListener("click", () => { resumeGame(); startGame(); });
   muteButton.addEventListener("click", () => {
     audio.setMuted?.(!(audio.isMuted?.() || false));
-    if (audio.isMuted?.()) window.speechSynthesis?.cancel();
+    cinematicVoice.muted = Boolean(audio.isMuted?.());
     updateMuteControl();
   });
   shootButton.addEventListener("pointerdown", (event) => { event.preventDefault(); event.stopPropagation(); fire(); });
@@ -1665,11 +1671,17 @@ import * as GameVFX from "./game/vfx.js";
   window.addEventListener("blur", () => {
     if (state === "playing") pauseGame();
     cinematic?.setPaused(true);
+    cinematicVoice.pause();
   });
-  window.addEventListener("focus", () => cinematic?.setPaused(false));
+  window.addEventListener("focus", () => {
+    cinematic?.setPaused(false);
+    if (["cinematic", "dialogue"].includes(state) && cinematicVoice.src && !cinematicVoice.ended) cinematicVoice.play().catch(() => {});
+  });
   document.addEventListener("visibilitychange", () => {
     if (document.hidden && state === "playing") pauseGame();
     cinematic?.setPaused(document.hidden);
+    if (document.hidden) cinematicVoice.pause();
+    else if (["cinematic", "dialogue"].includes(state) && cinematicVoice.src && !cinematicVoice.ended) cinematicVoice.play().catch(() => {});
   });
   window.addEventListener("keydown", (event) => {
     if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.code) || (state === "playing" && event.code === "Enter")) event.preventDefault();

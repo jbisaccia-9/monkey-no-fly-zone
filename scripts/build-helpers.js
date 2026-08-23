@@ -5,7 +5,7 @@ const root = path.resolve(__dirname, "..");
 const webDir = root;
 const assetDir = path.join(webDir, "assets");
 
-const IMAGE_REFERENCE = /(?:\.\/)?assets\/([A-Za-z0-9._/-]+\.(?:avif|gif|jpe?g|png|svg|webp))/gi;
+const ASSET_REFERENCE = /(?:\.\/)?assets\/([A-Za-z0-9._/-]+\.(?:avif|gif|jpe?g|m4a|mp3|ogg|png|svg|wav|webp))/gi;
 
 const MIME_TYPES = Object.freeze({
   ".avif": "image/avif",
@@ -15,17 +15,21 @@ const MIME_TYPES = Object.freeze({
   ".png": "image/png",
   ".svg": "image/svg+xml",
   ".webp": "image/webp",
+  ".m4a": "audio/mp4",
+  ".mp3": "audio/mpeg",
+  ".ogg": "audio/ogg",
+  ".wav": "audio/wav",
 });
 
 function readWebFile(relativePath) {
   return fs.readFileSync(path.join(webDir, relativePath), "utf8");
 }
 
-function collectImageReferences(...sources) {
+function collectAssetReferences(...sources) {
   const references = new Set();
   for (const source of sources) {
-    IMAGE_REFERENCE.lastIndex = 0;
-    for (const match of source.matchAll(IMAGE_REFERENCE)) references.add(match[1]);
+    ASSET_REFERENCE.lastIndex = 0;
+    for (const match of source.matchAll(ASSET_REFERENCE)) references.add(match[1]);
   }
   return [...references].sort();
 }
@@ -33,7 +37,7 @@ function collectImageReferences(...sources) {
 function assetDataUrl(filename) {
   const extension = path.extname(filename).toLowerCase();
   const mime = MIME_TYPES[extension];
-  if (!mime) throw new Error(`Unsupported image type for ${filename}`);
+  if (!mime) throw new Error(`Unsupported asset type for ${filename}`);
 
   const resolved = path.resolve(assetDir, filename);
   const relative = path.relative(assetDir, resolved);
@@ -45,7 +49,7 @@ function assetDataUrl(filename) {
   return `data:${mime};base64,${fs.readFileSync(resolved).toString("base64")}`;
 }
 
-function inlineImageReferences(source, references) {
+function inlineAssetReferences(source, references) {
   let output = source;
   for (const filename of references) {
     const dataUrl = assetDataUrl(filename);
@@ -91,8 +95,8 @@ function readArgument(name, defaultValue) {
 
 module.exports = {
   assertNonEmptyFile,
-  collectImageReferences,
-  inlineImageReferences,
+  collectAssetReferences,
+  inlineAssetReferences,
   readArgument,
   readWebFile,
   replaceRequired,
