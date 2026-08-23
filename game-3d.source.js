@@ -1071,14 +1071,14 @@ import * as GameVFX from "./game/vfx.js";
   window.addEventListener("blur", () => { if (state === "playing") pauseGame(); });
   document.addEventListener("visibilitychange", () => { if (document.hidden && state === "playing") pauseGame(); });
   window.addEventListener("keydown", (event) => {
-    if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.code)) event.preventDefault();
+    if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.code) || (state === "playing" && event.code === "Enter")) event.preventDefault();
     if (event.repeat && ["KeyA", "KeyD", "ArrowLeft", "ArrowRight"].includes(event.code)) return;
     keys.add(event.code);
     if (state === "playing") {
       if (event.code === "Space" || event.code === "KeyW" || event.code === "ArrowUp") flap();
       if (event.code === "KeyA" || event.code === "ArrowLeft") changeLane(-1);
       if (event.code === "KeyD" || event.code === "ArrowRight") changeLane(1);
-      if (event.code === "KeyX" || event.code === "KeyF" || event.code === "ShiftLeft") fire();
+      if (event.code === "Enter" || event.code === "KeyX" || event.code === "KeyF" || event.code === "ShiftLeft") fire();
       if (event.code === "Escape" || event.code === "KeyP") pauseGame();
     } else if (state === "paused" && (event.code === "Escape" || event.code === "KeyP")) resumeGame();
   });

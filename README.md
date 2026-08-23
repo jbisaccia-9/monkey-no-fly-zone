@@ -17,7 +17,8 @@ Then visit `http://localhost:8080`.
 ## Controls
 
 - `Space`, `W`, or `Up Arrow`: climb
-- `X`, `F`, or `Right Arrow`: fire banana pulse
+- `Enter`: fire banana pulse
+- `X`, `F`, or left `Shift`: alternate fire controls
 - `P` or `Escape`: pause or resume
 - `M`: mute or unmute
 - Touch: steer on the left, lift independently, and fire with the target control

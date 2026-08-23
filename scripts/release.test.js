@@ -10,6 +10,7 @@ test("3D source integrates every gameplay module", () => {
   for (const moduleName of ["player-visual", "city-stream", "combat-director", "vfx"]) {
     assert.match(source, new RegExp(`\\./game/${moduleName}\\.js`));
   }
+  assert.match(source, /event\.code === "Enter"[^\n]+fire\(\)/, "Enter should fire the player weapon");
 });
 
 test("standalone release is self-contained", () => {
