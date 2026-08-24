@@ -45,6 +45,11 @@ test("3D source integrates every gameplay module", () => {
   assert.match(source, /!missionObjective\.complete && elapsed >= nextLevel\.time/, "required assignments should gate sector progression");
   assert.match(source, /role: "ceiling-hunter"/, "ceiling camping should summon altitude hunters");
   assert.match(source, /relay-preview/, "localhost QA should expose the relay directive without replaying the full campaign");
+  assert.match(source, /finale-preview/, "the published game should expose an opt-in finale test flight");
+  assert.match(source, /function installFieldUpgrade\(/, "level upgrades should install without interrupting flight");
+  assert.doesNotMatch(source, /state = "upgrading"/, "level changes should never pause for an upgrade prompt");
+  assert.match(source, /hp: finalePreview \? 1/, "the finale route should make command relays quick to test");
+  assert.match(source, /hp: finalePreview \? 3/, "the finale route should make the Titan and ending quick to test");
 });
 
 test("late campaign escalates into the Skyshield command-core finale", () => {
@@ -92,7 +97,7 @@ test("opening briefing establishes the mission", () => {
   assert.match(html, /Why bananas\?/);
   assert.match(html, /id="vesperComms"/, "Vesper should have an in-flight command channel");
   assert.match(source, /state = "crashing";\s+missionVoice\.pause\(\);\s+hideVesperComms\(\)/, "the relay transmission should close before the crash result");
-  assert.match(html, /18-relay-directive\.mp3|game\.js\?v=28/);
+  assert.match(html, /18-relay-directive\.mp3|game\.js\?v=29/);
   assert.match(cinematic, /Black Flag uploaded a command virus/i);
   assert.match(cinematic, /Project Canopy's analog rescue ace/i);
   assert.match(cinematic, /brought forty-seven people home/i);

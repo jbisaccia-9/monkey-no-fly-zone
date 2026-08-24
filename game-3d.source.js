@@ -107,10 +107,6 @@ import * as GameVFX from "./game/vfx.js";
     firepower: document.getElementById("statFirepower"),
     survival: document.getElementById("statSurvival"),
   };
-  const upgradeOverlay = document.getElementById("upgradeOverlay");
-  const upgradeTitle = document.getElementById("upgradeTitle");
-  const upgradeGrid = document.getElementById("upgradeGrid");
-  const upgradeWallet = document.getElementById("upgradeWallet");
   const victoryOverlay = document.getElementById("victoryOverlay");
   const victoryCanvas = document.getElementById("victoryCanvas");
   const victorySpeaker = document.getElementById("victorySpeaker");
@@ -133,10 +129,12 @@ import * as GameVFX from "./game/vfx.js";
   const LAUNCH_BUDGET = 120;
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const RELAY_DIRECTIVE_VOICE = "./assets/voices/18-relay-directive.mp3";
+  const query = new URLSearchParams(location.search);
+  const finalePreview = query.has("finale-preview");
   const bossPreview = ["localhost", "127.0.0.1"].includes(location.hostname)
-    && new URLSearchParams(location.search).has("boss-preview");
+    && query.has("boss-preview");
   const relayPreview = ["localhost", "127.0.0.1"].includes(location.hostname)
-    && new URLSearchParams(location.search).has("relay-preview");
+    && query.has("relay-preview");
 
   const DIFFICULTIES = Object.freeze({
     easy: {
@@ -305,6 +303,12 @@ import * as GameVFX from "./game/vfx.js";
 
   bestNode.textContent = String(Math.floor(best));
   if (coconutCount) coconutCount.textContent = String(profile.coconuts);
+  if (finalePreview) {
+    startButton.textContent = "Open Finale Loadout";
+    overlayTitle.textContent = "Finale test flight ready.";
+    overlayText.textContent = "Configure Wingtail, then deploy directly into the command-relay assault.";
+    briefingOrder.textContent = "Destroy all three relays, defeat the Skyshield Titan, and the closing transmission will play automatically.";
+  }
   for (const item of Object.values(CATALOG).flat()) {
     if (item.previewAsset) {
       const image = new Image();
@@ -378,7 +382,6 @@ import * as GameVFX from "./game/vfx.js";
   function updateProgressDisplays() {
     if (coconutCount) coconutCount.textContent = String(profile.coconuts);
     if (hangarWallet) hangarWallet.textContent = String(profile.coconuts);
-    if (upgradeWallet) upgradeWallet.textContent = String(profile.coconuts);
     if (shieldCount) shieldCount.textContent = String(shields);
   }
 
@@ -562,7 +565,6 @@ import * as GameVFX from "./game/vfx.js";
     if (state === "loading" || state === "unsupported") return;
     state = "hangar";
     setOverlayVisible(false);
-    setDialogVisible(upgradeOverlay, false);
     setDialogVisible(hangarOverlay, true);
     resetSortieProfile(profile);
     previewSelection = { ...profile.equipped };
@@ -575,52 +577,13 @@ import * as GameVFX from "./game/vfx.js";
     announce("Wingtail loadout hangar opened.");
   }
 
-  function renderUpgradeChoices() {
-    if (!upgradeGrid) return;
-    upgradeGrid.replaceChildren(...FIELD_UPGRADES.map((upgrade) => {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "upgrade-choice";
-      const tag = document.createElement("small");
-      tag.textContent = upgrade.tag + " · Tier " + (runUpgrades[upgrade.id] + 1);
-      const name = document.createElement("strong");
-      name.textContent = upgrade.name;
-      const description = document.createElement("span");
-      description.textContent = upgrade.description;
-      const effect = document.createElement("b");
-      effect.textContent = upgrade.effect;
-      button.append(tag, name, description, effect);
-      button.addEventListener("click", () => chooseFieldUpgrade(upgrade));
-      return button;
-    }));
-  }
-
-  function showFieldUpgrade(levelIndex) {
-    state = "upgrading";
-    shootButton.disabled = true;
-    if (liftButton) liftButton.disabled = true;
-    keys.delete("TouchLift");
-    upgradeTitle.textContent = "Level " + (levelIndex + 1) + " field upgrade";
-    renderUpgradeChoices();
-    updateProgressDisplays();
-    setDialogVisible(upgradeOverlay, true);
-    audio.setPaused?.(true);
-    upgradeGrid?.querySelector("button")?.focus();
-  }
-
-  function chooseFieldUpgrade(upgrade) {
+  function installFieldUpgrade(levelIndex) {
+    const upgrade = FIELD_UPGRADES[(levelIndex - 1) % FIELD_UPGRADES.length];
     runUpgrades[upgrade.id] += 1;
     runStats = resolveRunStats(profile, runUpgrades);
     if (upgrade.id === "armor") shields += 1;
-    setDialogVisible(upgradeOverlay, false);
-    state = "playing";
-    shootButton.disabled = false;
-    if (liftButton) liftButton.disabled = false;
-    audio.setPaused?.(false);
-    lastTime = performance.now();
     updateProgressDisplays();
-    canvas.focus({ preventScroll: true });
-    announce(upgrade.name + " installed.");
+    return upgrade;
   }
 
   function earnCoconuts(baseAmount, label) {
@@ -1038,7 +1001,7 @@ import * as GameVFX from "./game/vfx.js";
       resize();
       state = "ready";
       startButton.disabled = false;
-      startButton.textContent = "Start Transmission";
+      startButton.textContent = finalePreview ? "Open Finale Loadout" : "Start Transmission";
       announce("3D flight systems ready.");
     } catch (error) {
       console.error(error);
@@ -1254,7 +1217,6 @@ import * as GameVFX from "./game/vfx.js";
     if (state === "loading" || state === "unsupported") return;
     reset();
     setDialogVisible(hangarOverlay, false);
-    setDialogVisible(upgradeOverlay, false);
     state = "playing";
     overlay.dataset.mode = "flight";
     setOverlayVisible(false);
@@ -1262,9 +1224,13 @@ import * as GameVFX from "./game/vfx.js";
     pauseButton.disabled = false;
     if (liftButton) liftButton.disabled = false;
     combatDirector?.start({ levelIndex: 0, delay: 0.85 });
-    if (bossPreview || relayPreview) {
+    if (bossPreview || relayPreview || finalePreview) {
       elapsed = LEVELS.at(-1).time;
       setLevel(LEVELS.length - 1, false);
+      if (finalePreview) {
+        shields = Math.max(shields, 5);
+        updateProgressDisplays();
+      }
       if (bossPreview) startBossBattle();
       else startRelayObjective();
     }
@@ -1514,8 +1480,8 @@ import * as GameVFX from "./game/vfx.js";
       const relay = {
         spec: { name: `COMMAND RELAY ${index + 1}` },
         view,
-        hp: Math.ceil((8 + index * 2) * difficulty.enemyHealth),
-        maxHp: Math.ceil((8 + index * 2) * difficulty.enemyHealth),
+        hp: finalePreview ? 1 : Math.ceil((8 + index * 2) * difficulty.enemyHealth),
+        maxHp: finalePreview ? 1 : Math.ceil((8 + index * 2) * difficulty.enemyHealth),
         lane: lanes[index],
         x: LANES[lanes[index]],
         y: altitudes[index],
@@ -1556,8 +1522,8 @@ import * as GameVFX from "./game/vfx.js";
     commandCarrier = {
       spec: { name: "SKYSHIELD TITAN" },
       view,
-      hp: difficulty.bossHp,
-      maxHp: difficulty.bossHp,
+      hp: finalePreview ? 3 : difficulty.bossHp,
+      maxHp: finalePreview ? 3 : difficulty.bossHp,
       x: 0,
       y: 2.1,
       z: -108,
@@ -1809,14 +1775,16 @@ import * as GameVFX from "./game/vfx.js";
     combatDirector?.setLevel(index, { clearSchedule: shouldAnnounce });
     audio.playLevel?.(index);
     beginMissionObjective(index);
+    let installedUpgrade = null;
     if (shouldAnnounce && index > 0) {
       earnCoconuts(12 + index * 4);
-      showFieldUpgrade(index);
+      installedUpgrade = installFieldUpgrade(index);
     }
     if (shouldAnnounce && index === LEVELS.length - 1) startRelayObjective();
     if (shouldAnnounce) {
       const objectiveCallout = missionObjective ? ` Mission: ${missionObjective.briefing}` : "";
-      announce(`Level ${index + 1}: ${level.name}. ${level.hazard}. City sector changed.${objectiveCallout}`);
+      const upgradeCallout = installedUpgrade ? ` Auto-installed: ${installedUpgrade.name}.` : "";
+      announce(`Level ${index + 1}: ${level.name}. ${level.hazard}. City sector changed.${upgradeCallout}${objectiveCallout}`);
     }
   }
 
@@ -2523,7 +2491,10 @@ import * as GameVFX from "./game/vfx.js";
   }
 
   startButton.addEventListener("click", () => {
-    if (overlay.dataset.mode === "result" || briefingPhase === "complete") showHangar();
+    if (finalePreview && briefingPhase === "ready") {
+      briefingPhase = "complete";
+      showHangar();
+    } else if (overlay.dataset.mode === "result" || briefingPhase === "complete") showHangar();
     else startCinematic();
   });
   skipIntroButton?.addEventListener("click", skipCinematicSequence);

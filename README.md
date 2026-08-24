@@ -6,6 +6,8 @@ A modern browser 3D survival game starring a mechanically winged monkey flying t
 
 **[Play Monkey See, Monkey Pew in your browser](https://jbisaccia-9.github.io/monkey-no-fly-zone/)**
 
+**[Jump directly to the command relays, Titan, and ending](https://jbisaccia-9.github.io/monkey-no-fly-zone/?finale-preview=1)**
+
 Open `monkey-no-fly-zone-standalone.html` directly, or serve this directory:
 
 ```bash
@@ -37,7 +39,7 @@ Then visit `http://localhost:8080`.
 - Equipped-to-preview comparisons with exact green/red deltas and an explicit preview-only state
 - A fresh 120-coconut armory and starter inventory for every sortie, so each run begins as a new build decision
 - Three flight rigs, three banana weapon systems, three outfits, and meaningful lift, handling, speed, firepower, armor, income, shield, and missile-lock modifiers
-- Mid-mission upgrades for flight control, banana velocity, and coconut armor at level transitions
+- Automatic field upgrades for flight control, banana velocity, and coconut armor at level transitions, with no modal interruptions
 - An exact 120-coconut launch budget on every new sortie and restart, with purchases lasting for that sortie only
 - Airborne coconut caches and rescue bananas that add currency, score, armor recovery, and Go Bananas charge
 - A player-triggered eight-second Banana Rage armed by ten fury points or four aircraft takedowns, with optimized heavy banana rockets
@@ -70,6 +72,7 @@ Then visit `http://localhost:8080`.
 11. The reliability edition synchronized cinematic pacing to completed voice playback, exposed the full eight-level campaign in the HUD, added a dedicated Go Bananas action, reset resources for every sortie, and refreshed deployed asset versions.
 12. The Titan edition added three mission difficulties, level-scaled aircraft armor, a much faster late-game city, and a post-relay command-carrier boss that must fall before humanity can reclaim the sky.
 13. The mission-operations edition rebuilt the short-screen hangar, reset every sortie to a fresh armory, added three required mid-campaign assignments, closed the ceiling exploit with altitude hunters, sharply intensified Banana Insanity, and gave Vesper a voiced final-approach directive.
+14. The uninterrupted-flight edition removed modal level-up prompts, auto-installed rotating field upgrades, and added a published finale test route that jumps straight to the command relays, Titan battle, and closing montage.
 
 Joseph originally began the broader game experiment in April 2026, when Codex had only recently become available to him. He later revisited Monkey No-Fly Zone as a teaching example for his intern, his CEO's 17-year-old son, to show that coding and AI could produce a real playable game rather than only snippets or mockups. Small changes to the instructions, combined with focused sub-agent reviews and repeated hands-on testing, drove the progression from the early arcade loop to this 3D release.
 
@@ -85,7 +88,7 @@ npm run build
 npm test
 ```
 
-The build produces `game.js`, embeds every referenced image and voice track into `monkey-no-fly-zone-standalone.html`, and verifies 92 required DOM hooks plus bundle integrity. The current release bundles ten modules into 678.1 KB, passes eleven automated tests across the source and standalone release, and ships as a self-contained 25.66 MB HTML game.
+The build produces `game.js`, embeds every referenced image and voice track into `monkey-no-fly-zone-standalone.html`, and verifies 92 required DOM hooks plus bundle integrity. The current release bundles ten modules into 677.5 KB, passes eleven automated tests across the source and standalone release, and ships as a self-contained 25.66 MB HTML game.
 
 ## Project Layout
 
