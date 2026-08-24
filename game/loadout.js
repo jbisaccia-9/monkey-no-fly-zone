@@ -224,6 +224,15 @@ export function resetLaunchBudget(profile, amount = 120, storage = globalThis.lo
   return budget;
 }
 
+export function resetSortieProfile(profile, storage = globalThis.localStorage) {
+  const defaults = cloneDefaultProfile();
+  profile.coconuts = defaults.coconuts;
+  profile.owned = defaults.owned;
+  profile.equipped = defaults.equipped;
+  saveProfile(profile, storage);
+  return profile;
+}
+
 export function createRunUpgrades() {
   return { flight: 0, arsenal: 0, armor: 0 };
 }

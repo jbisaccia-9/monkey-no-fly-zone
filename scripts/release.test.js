@@ -35,10 +35,16 @@ test("3D source integrates every gameplay module", () => {
   assert.match(source, /function startRelayObjective\(/, "the final level should deploy command relays");
   assert.match(source, /function startBossBattle\(/, "destroying the relays should summon the final boss");
   assert.match(source, /function destroyCommandCarrier\(/, "destroying the Titan should produce a victory state");
-  assert.match(source, /bossHp: 130/, "Banana Insanity should field the strongest Titan");
+  assert.match(source, /bossHp: 150/, "Banana Insanity should field the strongest Titan");
   assert.match(source, /name: "LAST STAND"[^\n]+speed: 44/, "the final city sector should be substantially faster");
   assert.match(source, /f16: \{[^\n]+hp: 3/, "F-16s should survive multiple standard banana hits");
   assert.match(source, /spec\.hp \* \(1 \+ currentLevel \* 0\.12\) \* difficulty\.enemyHealth/, "aircraft armor should scale by level and mode");
+  assert.match(source, /label: "Supply Sweep"/, "the campaign should include a collection assignment");
+  assert.match(source, /label: "Air Superiority"/, "the campaign should include a fighter takedown assignment");
+  assert.match(source, /label: "Missile Screen"/, "the campaign should include an interception assignment");
+  assert.match(source, /!missionObjective\.complete && elapsed >= nextLevel\.time/, "required assignments should gate sector progression");
+  assert.match(source, /role: "ceiling-hunter"/, "ceiling camping should summon altitude hunters");
+  assert.match(source, /relay-preview/, "localhost QA should expose the relay directive without replaying the full campaign");
 });
 
 test("late campaign escalates into the Skyshield command-core finale", () => {
@@ -64,7 +70,9 @@ test("hangar exposes three distinct gameplay difficulty modes", () => {
   assert.match(html, /Banana Insanity/);
   assert.match(source, /speed: 0\.88/);
   assert.match(source, /speed: 1\.08/);
-  assert.match(source, /speed: 1\.3/);
+  assert.match(source, /speed: 1\.42/);
+  assert.match(source, /missileBonus: 5/);
+  assert.match(source, /ceilingDelay: 1\.35/);
   assert.match(source, /startingShields: 2/);
   assert.match(source, /if \(relaysDestroyed >= 3\) startBossBattle\(\)/);
   assert.match(source, /SKYSHIELD TITAN DESTROYED/);
@@ -72,6 +80,7 @@ test("hangar exposes three distinct gameplay difficulty modes", () => {
 
 test("opening briefing establishes the mission", () => {
   const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
+  const source = fs.readFileSync(path.join(root, "game-3d.source.js"), "utf8");
   const cinematic = fs.readFileSync(path.join(root, "game", "cinematic-director.js"), "utf8");
   assert.match(html, /<title>Monkey See, Monkey Pew<\/title>/);
   assert.match(html, /Commander Vesper/);
@@ -81,6 +90,9 @@ test("opening briefing establishes the mission", () => {
   assert.match(html, /Real-time 3D emergency transmission/);
   assert.match(html, /Open the armory\./);
   assert.match(html, /Why bananas\?/);
+  assert.match(html, /id="vesperComms"/, "Vesper should have an in-flight command channel");
+  assert.match(source, /state = "crashing";\s+missionVoice\.pause\(\);\s+hideVesperComms\(\)/, "the relay transmission should close before the crash result");
+  assert.match(html, /18-relay-directive\.mp3|game\.js\?v=28/);
   assert.match(cinematic, /Black Flag uploaded a command virus/i);
   assert.match(cinematic, /Project Canopy's analog rescue ace/i);
   assert.match(cinematic, /brought forty-seven people home/i);
@@ -91,7 +103,7 @@ test("opening briefing establishes the mission", () => {
   assert.match(cinematic, /time >= nextBoundary && isVoicePlaying\(\)/, "the cinematic clock should wait for each voice performance");
 });
 
-test("hangar economy purchases and equips persistent loadouts", async () => {
+test("hangar economy purchases gear and resets each sortie to the starter loadout", async () => {
   const source = fs.readFileSync(path.join(root, "game", "loadout.js"), "utf8");
   const moduleUrl = "data:text/javascript;base64," + Buffer.from(source).toString("base64");
   const loadout = await import(moduleUrl);
@@ -118,6 +130,28 @@ test("hangar economy purchases and equips persistent loadouts", async () => {
   assert.equal(loadout.resetLaunchBudget(profile, 120, storage), 120);
   assert.equal(profile.coconuts, 120);
   assert.equal(loadout.loadProfile(storage).coconuts, 120);
+  loadout.purchaseOrEquip(profile, "airframe", "howler-rocket-rig", storage);
+  loadout.purchaseOrEquip(profile, "outfit", "ace-jacket", storage);
+  profile.bestScore = 4200;
+  profile.profileId = "wingtail-01";
+  const profileIdentity = profile;
+  const resetProfile = loadout.resetSortieProfile(profile, storage);
+  assert.equal(resetProfile, profileIdentity, "reset should preserve the profile object identity");
+  assert.equal(profile.coconuts, 120);
+  assert.deepEqual(profile.owned, {
+    airframe: ["clockwork-pinions"],
+    weapon: ["ripe-repeater"],
+    outfit: ["rescue-scarf"],
+  });
+  assert.deepEqual(profile.equipped, {
+    airframe: "clockwork-pinions",
+    weapon: "ripe-repeater",
+    outfit: "rescue-scarf",
+  });
+  assert.equal(profile.bestScore, 4200);
+  assert.equal(profile.profileId, "wingtail-01");
+  const persistedReset = JSON.parse(memory.get(loadout.STORAGE_KEY));
+  assert.deepEqual(persistedReset, profile);
   assert.ok(loadout.resolveRunStats(profile, { flight: 1, arsenal: 1, armor: 1 }).maxShields >= 1);
 });
 

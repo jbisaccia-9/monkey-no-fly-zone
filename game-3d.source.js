@@ -10,7 +10,7 @@ import {
   awardCoconuts,
   createRunUpgrades,
   displayStats,
-  resetLaunchBudget,
+  resetSortieProfile,
   getItem,
   loadProfile,
   purchaseOrEquip,
@@ -64,6 +64,9 @@ import * as GameVFX from "./game/vfx.js";
   const objectiveCount = document.getElementById("objectiveCount");
   const objectiveStatus = document.getElementById("objectiveStatus");
   const objectiveUnit = document.getElementById("objectiveUnit");
+  const vesperComms = document.getElementById("vesperComms");
+  const vesperCommsTitle = document.getElementById("vesperCommsTitle");
+  const vesperCommsText = document.getElementById("vesperCommsText");
   const levelNode = document.getElementById("level");
   const threatBar = document.getElementById("threatBar");
   const missileWarning = document.getElementById("missileWarning");
@@ -129,8 +132,11 @@ import * as GameVFX from "./game/vfx.js";
   const MAX_ACTIVE_SHOTS = 36;
   const LAUNCH_BUDGET = 120;
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const RELAY_DIRECTIVE_VOICE = "./assets/voices/18-relay-directive.mp3";
   const bossPreview = ["localhost", "127.0.0.1"].includes(location.hostname)
     && new URLSearchParams(location.search).has("boss-preview");
+  const relayPreview = ["localhost", "127.0.0.1"].includes(location.hostname)
+    && new URLSearchParams(location.search).has("relay-preview");
 
   const DIFFICULTIES = Object.freeze({
     easy: {
@@ -145,6 +151,9 @@ import * as GameVFX from "./game/vfx.js";
       startingShields: 2,
       bossHp: 55,
       bossFireInterval: 4.8,
+      altitudeTracking: 0.22,
+      ceilingDelay: 6.5,
+      ceilingHunters: 1,
       description: "Slower pursuit, lighter armor, two emergency shields, fewer fighters, and a 55-hit-point final Titan.",
     },
     hard: {
@@ -159,21 +168,27 @@ import * as GameVFX from "./game/vfx.js";
       startingShields: 1,
       bossHp: 85,
       bossFireInterval: 3.5,
+      altitudeTracking: 0.58,
+      ceilingDelay: 3.2,
+      ceilingHunters: 1,
       description: "Faster airspace, armored fighters, one emergency shield, aggressive missile formations, and an 85-hit-point final Titan.",
     },
     insanity: {
       name: "Banana Insanity",
-      speed: 1.3,
-      enemyHealth: 1.62,
-      encounter: 0.42,
-      jetBonus: 2,
-      missileBonus: 3,
-      missileSpeed: 1.26,
-      crosswind: 1.38,
+      speed: 1.42,
+      enemyHealth: 1.8,
+      encounter: 0.72,
+      jetBonus: 3,
+      missileBonus: 5,
+      missileSpeed: 1.38,
+      crosswind: 1.7,
       startingShields: 0,
-      bossHp: 130,
-      bossFireInterval: 2.2,
-      description: "Maximum velocity, reinforced squadrons, relentless salvos, brutal crosswinds, and a 130-hit-point Titan.",
+      bossHp: 150,
+      bossFireInterval: 1.8,
+      altitudeTracking: 0.9,
+      ceilingDelay: 1.35,
+      ceilingHunters: 2,
+      description: "Extreme velocity, hunter squadrons, five extra missiles, violent crosswinds, no starting shields, and a 150-hit-point Titan.",
     },
   });
 
@@ -187,6 +202,12 @@ import * as GameVFX from "./game/vfx.js";
     { time: 332, name: "KILLBOX", threat: 100, maxJets: 8, missileCap: 6, speed: 39.5, crosswind: 2.75, altitudeMin: -2.65, altitudeMax: 5.1, hazard: "Fortress crossfire" },
     { time: 422, name: "LAST STAND", threat: 100, maxJets: 8, missileCap: 7, speed: 44, crosswind: 3.35, altitudeMin: -2.45, altitudeMax: 4.85, hazard: "Command-core kill corridor" },
   ];
+
+  const MISSION_OBJECTIVES = Object.freeze({
+    1: { type: "pickup", label: "Supply Sweep", unit: "caches", target: 3, briefing: "Recover three airborne supply caches before leaving the industrial sector." },
+    3: { type: "jet", label: "Air Superiority", unit: "fighters", target: 5, briefing: "Break the strike formation. Destroy five hostile aircraft to open the next corridor." },
+    5: { type: "missile", label: "Missile Screen", unit: "missiles", target: 4, briefing: "Shoot down four incoming missiles before the fortress approach." },
+  });
 
   const AIRCRAFT = {
     f16: { name: "F-16", color: 0x8f9ba0, accent: 0x415760, hp: 3, speed: 1.06, agility: 1.05, score: 500, scale: 0.92 },
@@ -203,6 +224,13 @@ import * as GameVFX from "./game/vfx.js";
   let cinematicVoiceActive = false;
   cinematicVoice.addEventListener("ended", () => { cinematicVoiceActive = false; });
   cinematicVoice.addEventListener("error", () => { cinematicVoiceActive = false; });
+  const missionVoice = new Audio(RELAY_DIRECTIVE_VOICE);
+  missionVoice.preload = "auto";
+  let vesperCommsTimer = 0;
+  missionVoice.addEventListener("ended", () => {
+    clearTimeout(vesperCommsTimer);
+    vesperCommsTimer = window.setTimeout(() => hideVesperComms(), 1200);
+  });
   const cinematicVoicePreloads = [...CINEMATIC_VOICE_ASSETS, ...VICTORY_VOICE_ASSETS].map((source) => {
     const voice = new Audio();
     voice.preload = "auto";
@@ -244,7 +272,7 @@ import * as GameVFX from "./game/vfx.js";
   let difficultyId = "hard";
   let difficulty = DIFFICULTIES[difficultyId];
   let profile = loadProfile();
-  resetLaunchBudget(profile, LAUNCH_BUDGET);
+  resetSortieProfile(profile);
   let previewSelection = { ...profile.equipped };
   let runUpgrades = createRunUpgrades();
   let runStats = resolveRunStats(profile, runUpgrades);
@@ -260,6 +288,8 @@ import * as GameVFX from "./game/vfx.js";
   let relaysDestroyed = 0;
   let bossBattleStarted = false;
   let commandCarrier = null;
+  let missionObjective = null;
+  let ceilingExposure = 0;
   let best = Number(localStorage.getItem("monkeyNoFlyBest3D") || localStorage.getItem("monkeyNoFlyBest") || 0);
 
   const monkey = { x: 0, y: 0.7, z: PLAYER_Z, vy: 0, vx: 0, lane: 1, bank: 0, pitch: 0, radius: PlayerVisual.PLAYER_COLLISION_RADIUS };
@@ -285,6 +315,26 @@ import * as GameVFX from "./game/vfx.js";
   function announce(message) {
     statusRegion.textContent = "";
     requestAnimationFrame(() => { statusRegion.textContent = message; });
+  }
+
+  function hideVesperComms() {
+    clearTimeout(vesperCommsTimer);
+    vesperCommsTimer = 0;
+    if (vesperComms) vesperComms.hidden = true;
+  }
+
+  function showVesperComms() {
+    if (!vesperComms) return;
+    clearTimeout(vesperCommsTimer);
+    if (vesperCommsTitle) vesperCommsTitle.textContent = "Final directive";
+    if (vesperCommsText) vesperCommsText.textContent = "The command relays are exposed. Take them down now. Every city below is counting on you.";
+    vesperComms.hidden = false;
+    missionVoice.pause();
+    missionVoice.currentTime = 0;
+    missionVoice.muted = Boolean(audio.isMuted?.());
+    missionVoice.play().catch(() => {
+      vesperCommsTimer = window.setTimeout(() => hideVesperComms(), 9000);
+    });
   }
 
   function clamp(value, min, max) {
@@ -514,7 +564,7 @@ import * as GameVFX from "./game/vfx.js";
     setOverlayVisible(false);
     setDialogVisible(upgradeOverlay, false);
     setDialogVisible(hangarOverlay, true);
-    resetLaunchBudget(profile, LAUNCH_BUDGET);
+    resetSortieProfile(profile);
     previewSelection = { ...profile.equipped };
     shootButton.disabled = true;
     pauseButton.disabled = true;
@@ -1171,6 +1221,11 @@ import * as GameVFX from "./game/vfx.js";
     relayObjectiveStarted = false;
     relaysDestroyed = 0;
     bossBattleStarted = false;
+    missionObjective = null;
+    ceilingExposure = 0;
+    missionVoice.pause();
+    missionVoice.currentTime = 0;
+    hideVesperComms();
     currentLevel = 0;
     seed = (Date.now() ^ 0x74ac31) >>> 0;
     cityStream?.setSeed(seed, { regenerate: true });
@@ -1197,7 +1252,6 @@ import * as GameVFX from "./game/vfx.js";
 
   function startGame() {
     if (state === "loading" || state === "unsupported") return;
-    resetLaunchBudget(profile, LAUNCH_BUDGET);
     reset();
     setDialogVisible(hangarOverlay, false);
     setDialogVisible(upgradeOverlay, false);
@@ -1208,10 +1262,11 @@ import * as GameVFX from "./game/vfx.js";
     pauseButton.disabled = false;
     if (liftButton) liftButton.disabled = false;
     combatDirector?.start({ levelIndex: 0, delay: 0.85 });
-    if (bossPreview) {
+    if (bossPreview || relayPreview) {
       elapsed = LEVELS.at(-1).time;
       setLevel(LEVELS.length - 1, false);
-      startBossBattle();
+      if (bossPreview) startBossBattle();
+      else startRelayObjective();
     }
     audio.init?.();
     audio.setPaused?.(false);
@@ -1397,7 +1452,7 @@ import * as GameVFX from "./game/vfx.js";
 
   function updateObjectiveHud() {
     const remaining = Math.max(0, 3 - relaysDestroyed);
-    const active = relayObjectiveStarted || bossBattleStarted;
+    const active = Boolean(missionObjective) || relayObjectiveStarted || bossBattleStarted;
     if (objectiveHud) objectiveHud.hidden = !active || state === "victory" || state === "victory-result";
     if (bossBattleStarted && commandCarrier) {
       const health = Math.max(0, Math.ceil(commandCarrier.hp));
@@ -1409,7 +1464,7 @@ import * as GameVFX from "./game/vfx.js";
       objectiveMeter?.parentElement?.setAttribute("aria-label", "Skyshield Titan damage");
       objectiveMeter?.parentElement?.setAttribute("aria-valuemax", "100");
       objectiveMeter?.parentElement?.setAttribute("aria-valuenow", String(damageProgress));
-    } else {
+    } else if (relayObjectiveStarted) {
       if (objectiveLabel) objectiveLabel.textContent = "Relay Hunt";
       if (objectiveCount) objectiveCount.textContent = String(remaining);
       if (objectiveUnit) objectiveUnit.textContent = "remaining";
@@ -1417,7 +1472,35 @@ import * as GameVFX from "./game/vfx.js";
       objectiveMeter?.parentElement?.setAttribute("aria-label", "Command relays destroyed");
       objectiveMeter?.parentElement?.setAttribute("aria-valuemax", "3");
       objectiveMeter?.parentElement?.setAttribute("aria-valuenow", String(relaysDestroyed));
+    } else if (missionObjective) {
+      const progress = Math.min(missionObjective.target, missionObjective.progress);
+      if (objectiveLabel) objectiveLabel.textContent = missionObjective.label;
+      if (objectiveCount) objectiveCount.textContent = `${progress} / ${missionObjective.target}`;
+      if (objectiveUnit) objectiveUnit.textContent = missionObjective.unit;
+      objectiveMeter?.style.setProperty("width", `${Math.round((progress / missionObjective.target) * 100)}%`);
+      objectiveMeter?.parentElement?.setAttribute("aria-label", missionObjective.label + " progress");
+      objectiveMeter?.parentElement?.setAttribute("aria-valuemax", String(missionObjective.target));
+      objectiveMeter?.parentElement?.setAttribute("aria-valuenow", String(progress));
     }
+  }
+
+  function beginMissionObjective(levelIndex) {
+    const spec = MISSION_OBJECTIVES[levelIndex];
+    missionObjective = spec ? { ...spec, progress: 0, complete: false, levelIndex } : null;
+    if (missionObjective?.type === "pickup") pickupTimer = Math.min(pickupTimer, 1.2);
+    updateObjectiveHud();
+  }
+
+  function advanceMissionObjective(type) {
+    if (!missionObjective || missionObjective.complete || missionObjective.type !== type) return;
+    missionObjective.progress = Math.min(missionObjective.target, missionObjective.progress + 1);
+    if (missionObjective.progress >= missionObjective.target) {
+      missionObjective.complete = true;
+      earnCoconuts(15);
+      awardSkill(`${missionObjective.label.toUpperCase()} COMPLETE`, 1200);
+      announce(`${missionObjective.label} complete. The next city sector is open.`);
+    }
+    updateObjectiveHud();
   }
 
   function startRelayObjective() {
@@ -1445,6 +1528,7 @@ import * as GameVFX from "./game/vfx.js";
       commandRelays.push(relay);
     }
     updateObjectiveHud();
+    showVesperComms();
     announce("Relay Hunt active. Destroy all three command relays to free the stolen fleet.");
   }
 
@@ -1678,6 +1762,7 @@ import * as GameVFX from "./game/vfx.js";
       announce("Coconut collected. Five coconuts secured.");
     }
     updateProgressDisplays();
+    advanceMissionObjective("pickup");
     audio.playFlap?.(1.35);
     removeView(pickup.view);
     pickups.splice(index, 1);
@@ -1723,15 +1808,24 @@ import * as GameVFX from "./game/vfx.js";
     }
     combatDirector?.setLevel(index, { clearSchedule: shouldAnnounce });
     audio.playLevel?.(index);
+    beginMissionObjective(index);
     if (shouldAnnounce && index > 0) {
       earnCoconuts(12 + index * 4);
       showFieldUpgrade(index);
     }
     if (shouldAnnounce && index === LEVELS.length - 1) startRelayObjective();
-    if (shouldAnnounce) announce(`Level ${index + 1}: ${level.name}. ${level.hazard}. City sector changed.`);
+    if (shouldAnnounce) {
+      const objectiveCallout = missionObjective ? ` Mission: ${missionObjective.briefing}` : "";
+      announce(`Level ${index + 1}: ${level.name}. ${level.hazard}. City sector changed.${objectiveCallout}`);
+    }
   }
 
   function updateLevel() {
+    const nextLevel = LEVELS[currentLevel + 1];
+    if (nextLevel && missionObjective && !missionObjective.complete && elapsed >= nextLevel.time) {
+      elapsed = nextLevel.time - 0.01;
+      return;
+    }
     let index = 0;
     for (let i = LEVELS.length - 1; i >= 0; i -= 1) {
       if (elapsed >= LEVELS[i].time) { index = i; break; }
@@ -1750,6 +1844,12 @@ import * as GameVFX from "./game/vfx.js";
     const lane = clamp(Number.isInteger(options.lane) ? options.lane : Math.floor(simRandom() * LANES.length), 0, LANES.length - 1);
     const view = createJetView(typeId);
     const behavior = options.behavior || ["intercept", "sweep", "dive"][Math.floor(simRandom() * 3)];
+    const level = LEVELS[currentLevel];
+    const altitudeMin = level.altitudeMin ?? ALTITUDE_MIN;
+    const altitudeMax = level.altitudeMax ?? ALTITUDE_MAX;
+    const baseAltitude = Number.isFinite(options.altitude) ? options.altitude : randomRange(-1.6, 5.2);
+    const tracking = options.trackPlayer === false ? 0 : difficulty.altitudeTracking;
+    const spawnAltitude = clamp(baseAltitude + (monkey.y - baseAltitude) * tracking + randomRange(-0.3, 0.3) * tracking, altitudeMin + 0.25, altitudeMax - 0.2);
     const jet = {
       entityId: options.entityId || `legacy-${seed}-${jets.length}`,
       encounterId: options.encounterId || null,
@@ -1759,7 +1859,7 @@ import * as GameVFX from "./game/vfx.js";
       maxHp: Math.ceil(spec.hp * (1 + currentLevel * 0.12) * difficulty.enemyHealth),
       lane,
       x: LANES[lane] + randomRange(-0.8, 0.8),
-      y: Number.isFinite(options.altitude) ? options.altitude : randomRange(-1.6, 5.2),
+      y: spawnAltitude,
       z: Number.isFinite(options.spawnZ) ? options.spawnZ : -82,
       speed: flightSpeed() * spec.speed * clamp(options.speedScale || 1, 0.78, 1.42),
       phase: Number.isFinite(options.phase) ? options.phase : randomRange(0, Math.PI * 2),
@@ -1835,6 +1935,26 @@ import * as GameVFX from "./game/vfx.js";
       monkey.y = clamp(monkey.y, altitudeMin, altitudeMax);
       monkey.vy *= -0.15;
       cameraShake = Math.max(cameraShake, 0.08);
+    }
+    if (monkey.y > altitudeMax - 0.55) ceilingExposure += dt;
+    else ceilingExposure = Math.max(0, ceilingExposure - dt * 1.8);
+    if (ceilingExposure >= difficulty.ceilingDelay && jets.length < aircraftLimit() + difficulty.ceilingHunters) {
+      ceilingExposure = 0;
+      let firstHunter = null;
+      for (let index = 0; index < difficulty.ceilingHunters; index += 1) {
+        const hunter = spawnJet({
+          typeHint: currentLevel >= 2 ? "f22" : "f16",
+          lane: clamp(monkey.lane + (index % 2 ? -1 : 1), 0, LANES.length - 1),
+          altitude: monkey.y + randomRange(-0.22, 0.18),
+          spawnZ: -54 - index * 8,
+          speedScale: difficultyId === "insanity" ? 1.38 : 1.2,
+          behavior: "dive",
+          role: "ceiling-hunter",
+        });
+        firstHunter ||= hunter;
+      }
+      if (firstHunter) beginMissileLock(firstHunter, { leadTime: difficultyId === "insanity" ? 0.82 : 1.12 });
+      announce("Altitude hunter squadron inbound. Break away from the ceiling.");
     }
     const laneTarget = LANES[monkey.lane];
     monkey.vx += (laneTarget - monkey.x) * 34 * runStats.handling * dt;
@@ -2062,6 +2182,7 @@ import * as GameVFX from "./game/vfx.js";
           removeView(missile.view);
           missiles.splice(m, 1);
           awardSkill("MISSILE DOWN", 300);
+          advanceMissionObjective("missile");
           consumed = true;
           break;
         }
@@ -2149,6 +2270,7 @@ import * as GameVFX from "./game/vfx.js";
     }
     earnCoconuts(Math.max(2, Math.round(jet.spec.score / 190)));
     takedowns += 1;
+    advanceMissionObjective("jet");
     addFury(2.5);
     awardSkill(`${jet.spec.name} DOWN`, jet.spec.score);
     audio.playJetDestroyed?.(clamp(jet.x / 8, -1, 1));
@@ -2280,6 +2402,8 @@ import * as GameVFX from "./game/vfx.js";
   function gameOver(reason) {
     if (state !== "playing") return;
     state = "crashing";
+    missionVoice.pause();
+    hideVesperComms();
     updateRageHud();
     shootButton.disabled = true;
     if (liftButton) liftButton.disabled = true;
@@ -2435,10 +2559,11 @@ import * as GameVFX from "./game/vfx.js";
   });
   pauseButton.addEventListener("click", pauseGame);
   resumeButton.addEventListener("click", resumeGame);
-  restartButton.addEventListener("click", () => { resumeGame(); startGame(); });
+  restartButton.addEventListener("click", () => { resumeGame(); showHangar(); });
   muteButton.addEventListener("click", () => {
     audio.setMuted?.(!(audio.isMuted?.() || false));
     cinematicVoice.muted = Boolean(audio.isMuted?.());
+    missionVoice.muted = Boolean(audio.isMuted?.());
     updateMuteControl();
   });
   shootButton.addEventListener("pointerdown", (event) => { event.preventDefault(); event.stopPropagation(); fire(); });

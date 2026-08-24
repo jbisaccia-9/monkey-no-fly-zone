@@ -73,6 +73,7 @@ const lines = [
   ["15-relays-down.mp3", "vesper", "[relieved but still commanding, wonder beginning to break through] The relays are down. Skyshield is blind, and every stolen aircraft is returning to human control."],
   ["16-wingtail-victory.mp3", "wingtail", "[breathless, proud, then playfully practical] Tell humanity the sky is open. And tell them to keep the fruit bowl stocked."],
   ["17-sky-restored.mp3", "vesper", "[warm, deeply proud, allowing herself a small smile] Operation Banana Sky is complete. Welcome home, Wingtail."],
+  ["18-relay-directive.mp3", "vesper", "[urgent, intimate field command; humanity's fate is immediate but her confidence in Wingtail is absolute] Wingtail, the command relays are exposed. Take them down now. Every city below is counting on you. Finish this, and we get our sky back."],
 ];
 
 async function eleven(path, options = {}) {

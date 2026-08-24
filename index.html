@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#071014">
     <title>Monkey See, Monkey Pew</title>
     <meta name="description" content="A flying monkey. A stolen terror fleet. Humanity's last wildly unqualified hope.">
-    <link rel="stylesheet" href="./styles.css?v=19">
+    <link rel="stylesheet" href="./styles.css?v=20">
   </head>
   <body>
     <main class="shell" aria-label="Monkey See, Monkey Pew game">
@@ -111,6 +111,15 @@
           ></i>
         </span>
       </div>
+
+      <aside class="vesper-comms" id="vesperComms" aria-label="Commander Vesper transmission" aria-live="polite" hidden>
+        <img src="./assets/commander-vesper-v1.png" alt="">
+        <span>
+          <small>Vesper // Live</small>
+          <strong id="vesperCommsTitle">Final directive</strong>
+          <p id="vesperCommsText">The command relays are exposed. Take them down now.</p>
+        </span>
+      </aside>
 
       <section class="touch-controls" id="touchControls" aria-label="Touch flight controls" aria-hidden="true">
         <div class="touch-zone touch-zone--steer" id="steerZone" data-control="steer">
@@ -235,7 +244,7 @@
                 </div>
                 <p id="difficultyDescription">Faster airspace, armored fighters, one emergency shield, aggressive missile formations, and an 85-hit-point final Titan.</p>
               </section>
-              <p class="hangar-economy-note">Each sortie starts with 120 coconuts. Owned equipment remains unlocked.</p>
+              <p class="hangar-economy-note">Each new sortie starts fresh with 120 coconuts and starter equipment.</p>
               <p class="hangar-status" id="hangarStatus" role="status">Choose equipment, then deploy.</p>
               <button class="deploy-button" id="deployButton" type="button">Deploy Equipped Loadout</button>
             </section>
@@ -311,6 +320,6 @@
     </main>
 
     <script src="./audio.js?v=3"></script>
-    <script src="./game.js?v=27"></script>
+    <script src="./game.js?v=28"></script>
   </body>
 </html>
