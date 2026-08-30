@@ -86,6 +86,22 @@
           <i role="progressbar" aria-label="Command relays destroyed" aria-valuemin="0" aria-valuemax="3" aria-valuenow="0"><b id="objectiveMeter"></b></i>
           <strong id="objectiveStatus"><b id="objectiveCount">3</b> <span id="objectiveUnit">remaining</span></strong>
         </div>
+        <div class="boss-battle-hud" id="bossBattleHud" aria-label="Titan survival battle" hidden>
+          <div class="boss-battle-hud__combatant boss-battle-hud__combatant--wingtail">
+            <span>Wingtail</span>
+            <i role="progressbar" aria-label="Wingtail health" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><b id="wingtailHealthMeter"></b></i>
+            <strong id="wingtailHealthText">100</strong>
+          </div>
+          <div class="boss-battle-hud__weapon">
+            <span>Potassium RPG</span>
+            <strong id="rpgStatus">Armed</strong>
+          </div>
+          <div class="boss-battle-hud__combatant boss-battle-hud__combatant--titan">
+            <span id="titanPhase">Titan · Phase I</span>
+            <i role="progressbar" aria-label="Skyshield Titan health" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><b id="titanHealthMeter"></b></i>
+            <strong id="titanHealthText">100%</strong>
+          </div>
+        </div>
       </section>
 
       <section class="targeting-hud" id="targetingHud" aria-label="Targeting status" aria-live="polite">

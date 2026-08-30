@@ -28,14 +28,14 @@ test("3D source integrates every gameplay module", () => {
   assert.match(source, /event\.code === "KeyR"[^\n]+activateRage\(\)/, "R should activate a charged Go Bananas ability");
   assert.match(source, /rageActionButton\?\.addEventListener\("click", activateRage\)/, "a dedicated action button should activate Go Bananas");
   assert.match(source, /fire\(true\)/, "rage should automatically fire heavy banana rockets");
-  assert.match(source, /projectileCount = rageShot \? 1/, "rage should use a mobile-safe projectile budget");
+  assert.match(source, /projectileCount = rpgShot \|\| rageShot \? 1/, "heavy weapons should use a mobile-safe projectile budget");
   assert.match(source, /\{ time: 32, name: "INTERCEPT"/, "the first level should allow a longer opening patrol");
   assert.match(source, /\{ time: 422, name: "LAST STAND"/, "the campaign should reach an eighth final theater");
   assert.match(source, /crosswind: 3\.35/, "late levels should add meaningful crosswind pressure");
   assert.match(source, /function startRelayObjective\(/, "the final level should deploy command relays");
   assert.match(source, /function startBossBattle\(/, "destroying the relays should summon the final boss");
   assert.match(source, /function destroyCommandCarrier\(/, "destroying the Titan should produce a victory state");
-  assert.match(source, /bossHp: 150/, "Banana Insanity should field the strongest Titan");
+  assert.match(source, /bossHp: 340/, "Banana Insanity should field the strongest Titan");
   assert.match(source, /name: "LAST STAND"[^\n]+speed: 44/, "the final city sector should be substantially faster");
   assert.match(source, /f16: \{[^\n]+hp: 3/, "F-16s should survive multiple standard banana hits");
   assert.match(source, /spec\.hp \* \(1 \+ currentLevel \* 0\.12\) \* difficulty\.enemyHealth/, "aircraft armor should scale by level and mode");
@@ -51,7 +51,11 @@ test("3D source integrates every gameplay module", () => {
   assert.match(source, /function installFieldUpgrade\(/, "level upgrades should install without interrupting flight");
   assert.doesNotMatch(source, /state = "upgrading"/, "level changes should never pause for an upgrade prompt");
   assert.match(source, /hp: finalePreview \? 1/, "the finale route should make command relays quick to test");
-  assert.match(source, /hp: finalePreview \? 3/, "the finale route should make the Titan and ending quick to test");
+  assert.match(source, /hp: finalePreview \? 24/, "the finale route should make the Titan and ending quick to test");
+  assert.match(source, /function startPortalSequence\(/, "the relay collapse should open a dedicated survival portal");
+  assert.match(source, /function createRpgShotView\(/, "the Titan battle should arm Wingtail with a unique RPG");
+  assert.match(source, /WINGTAIL_MAX_HEALTH = 100/, "Wingtail should receive a dedicated boss-battle health pool");
+  assert.match(source, /phaseIndex/, "the Titan should escalate through multiple combat phases");
 });
 
 test("late campaign escalates into the Skyshield command-core finale", () => {
@@ -81,7 +85,7 @@ test("hangar exposes three distinct gameplay difficulty modes", () => {
   assert.match(source, /missileBonus: 5/);
   assert.match(source, /ceilingDelay: 1\.35/);
   assert.match(source, /startingShields: 2/);
-  assert.match(source, /if \(relaysDestroyed >= 3\) startBossBattle\(\)/);
+  assert.match(source, /if \(relaysDestroyed >= 3\) startPortalSequence\(\)/);
   assert.match(source, /SKYSHIELD TITAN DESTROYED/);
 });
 

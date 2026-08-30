@@ -64,6 +64,13 @@ import * as GameVFX from "./game/vfx.js";
   const objectiveCount = document.getElementById("objectiveCount");
   const objectiveStatus = document.getElementById("objectiveStatus");
   const objectiveUnit = document.getElementById("objectiveUnit");
+  const bossBattleHud = document.getElementById("bossBattleHud");
+  const wingtailHealthMeter = document.getElementById("wingtailHealthMeter");
+  const wingtailHealthText = document.getElementById("wingtailHealthText");
+  const rpgStatus = document.getElementById("rpgStatus");
+  const titanPhase = document.getElementById("titanPhase");
+  const titanHealthMeter = document.getElementById("titanHealthMeter");
+  const titanHealthText = document.getElementById("titanHealthText");
   const vesperComms = document.getElementById("vesperComms");
   const vesperCommsTitle = document.getElementById("vesperCommsTitle");
   const vesperCommsText = document.getElementById("vesperCommsText");
@@ -126,6 +133,10 @@ import * as GameVFX from "./game/vfx.js";
   const RAGE_DURATION = 8;
   const RAGE_FIRE_INTERVAL = 0.34;
   const MAX_ACTIVE_SHOTS = 36;
+  const WINGTAIL_MAX_HEALTH = 100;
+  const RPG_COOLDOWN = 1.12;
+  const RPG_DAMAGE = 8;
+  const PORTAL_DURATION = 4.8;
   const LAUNCH_BUDGET = 120;
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const RELAY_DIRECTIVE_VOICE = "./assets/voices/18-relay-directive.mp3";
@@ -147,12 +158,12 @@ import * as GameVFX from "./game/vfx.js";
       missileSpeed: 0.92,
       crosswind: 0.68,
       startingShields: 2,
-      bossHp: 55,
-      bossFireInterval: 4.8,
+      bossHp: 160,
+      bossFireInterval: 3.8,
       altitudeTracking: 0.22,
       ceilingDelay: 6.5,
       ceilingHunters: 1,
-      description: "Slower pursuit, lighter armor, two emergency shields, fewer fighters, and a 55-hit-point final Titan.",
+      description: "Slower pursuit, lighter armor, two emergency shields, fewer fighters, and a 160-hit-point final Titan.",
     },
     hard: {
       name: "Hard",
@@ -164,12 +175,12 @@ import * as GameVFX from "./game/vfx.js";
       missileSpeed: 1.08,
       crosswind: 1,
       startingShields: 1,
-      bossHp: 85,
-      bossFireInterval: 3.5,
+      bossHp: 240,
+      bossFireInterval: 2.8,
       altitudeTracking: 0.58,
       ceilingDelay: 3.2,
       ceilingHunters: 1,
-      description: "Faster airspace, armored fighters, one emergency shield, aggressive missile formations, and an 85-hit-point final Titan.",
+      description: "Faster airspace, armored fighters, one emergency shield, aggressive missile formations, and a 240-hit-point final Titan.",
     },
     insanity: {
       name: "Banana Insanity",
@@ -181,12 +192,12 @@ import * as GameVFX from "./game/vfx.js";
       missileSpeed: 1.38,
       crosswind: 1.7,
       startingShields: 0,
-      bossHp: 150,
-      bossFireInterval: 1.8,
+      bossHp: 340,
+      bossFireInterval: 1.7,
       altitudeTracking: 0.9,
       ceilingDelay: 1.35,
       ceilingHunters: 2,
-      description: "Extreme velocity, hunter squadrons, five extra missiles, violent crosswinds, no starting shields, and a 150-hit-point Titan.",
+      description: "Extreme velocity, hunter squadrons, five extra missiles, violent crosswinds, no starting shields, and a 340-hit-point Titan.",
     },
   });
 
@@ -286,6 +297,10 @@ import * as GameVFX from "./game/vfx.js";
   let relaysDestroyed = 0;
   let bossBattleStarted = false;
   let commandCarrier = null;
+  let portalSequenceActive = false;
+  let survivalPortal = null;
+  let portalTimer = 0;
+  let wingtailHealth = WINGTAIL_MAX_HEALTH;
   let missionObjective = null;
   let objectiveOvertime = 0;
   let ceilingExposure = 0;
@@ -794,6 +809,84 @@ import * as GameVFX from "./game/vfx.js";
     return group;
   }
 
+  function createSurvivalPortalView() {
+    const group = new THREE.Group();
+    const rings = [];
+    const ringMaterial = new THREE.MeshBasicMaterial({ color: 0x5ff4db, transparent: true, opacity: 0.5, depthWrite: false, toneMapped: false });
+    const warningMaterial = new THREE.MeshBasicMaterial({ color: 0xff6548, transparent: true, opacity: 0.42, depthWrite: false, toneMapped: false });
+    for (let index = 0; index < 15; index += 1) {
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(10.5 + Math.sin(index * 1.7) * 0.8, 0.12 + (index % 3) * 0.035, 8, 64),
+        index % 4 === 3 ? warningMaterial : ringMaterial,
+      );
+      ring.position.z = -18 - index * 11;
+      ring.rotation.z = index * 0.47;
+      group.add(ring);
+      rings.push(ring);
+    }
+    const gate = new THREE.Mesh(
+      new THREE.TorusGeometry(11.6, 0.48, 12, 72),
+      new THREE.MeshBasicMaterial({ color: 0xffcf55, transparent: true, opacity: 0.86, toneMapped: false }),
+    );
+    gate.position.z = -52;
+    group.add(gate);
+    const portalLight = new THREE.PointLight(0x61f1dd, 18, 80, 1.7);
+    portalLight.position.set(0, 2, -42);
+    group.add(portalLight);
+    const particlePositions = new Float32Array(520 * 3);
+    for (let index = 0; index < 520; index += 1) {
+      const radius = randomRange(3.8, 10.2);
+      const angle = randomRange(0, Math.PI * 2);
+      particlePositions[index * 3] = Math.cos(angle) * radius;
+      particlePositions[index * 3 + 1] = 1.5 + Math.sin(angle) * radius;
+      particlePositions[index * 3 + 2] = randomRange(-170, 8);
+    }
+    const particleGeometry = new THREE.BufferGeometry();
+    particleGeometry.setAttribute("position", new THREE.BufferAttribute(particlePositions, 3));
+    const particles = new THREE.Points(
+      particleGeometry,
+      new THREE.PointsMaterial({ color: 0x8bfff0, size: 0.12, transparent: true, opacity: 0.72, depthWrite: false, toneMapped: false }),
+    );
+    group.add(particles);
+    group.userData = { rings, gate, portalLight, particles };
+    return group;
+  }
+
+  function createRpgShotView() {
+    const group = new THREE.Group();
+    const shell = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.17, 0.23, 1.45, 10),
+      makeMaterial(0x425447, { metalness: 0.7, roughness: 0.3, emissive: 0x152313, emissiveIntensity: 0.35 }),
+    );
+    shell.rotation.x = Math.PI / 2;
+    group.add(shell);
+    const warhead = new THREE.Mesh(
+      new THREE.ConeGeometry(0.24, 0.62, 10),
+      makeMaterial(0xffcf3b, { metalness: 0.32, roughness: 0.36, emissive: 0x9a3c00, emissiveIntensity: 0.8 }),
+    );
+    warhead.rotation.x = -Math.PI / 2;
+    warhead.position.z = -1.02;
+    group.add(warhead);
+    for (let index = 0; index < 4; index += 1) {
+      const fin = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.36, 0.45), makeMaterial(0x27343a, { metalness: 0.76, roughness: 0.28 }));
+      fin.position.z = 0.67;
+      fin.rotation.z = index * Math.PI / 2;
+      group.add(fin);
+    }
+    const flame = new THREE.Mesh(
+      new THREE.ConeGeometry(0.2, 1.1, 10),
+      new THREE.MeshBasicMaterial({ color: 0xff5b28, transparent: true, opacity: 0.94, toneMapped: false }),
+    );
+    flame.rotation.x = Math.PI / 2;
+    flame.position.z = 1.26;
+    group.add(flame);
+    const light = new THREE.PointLight(0xff9a36, 4.5, 9, 2);
+    light.position.z = 0.7;
+    group.add(light);
+    group.userData = { flame, isPotassiumRpg: true };
+    return group;
+  }
+
   function createShotView(weaponId = "ripe-repeater", rage = false) {
     const group = new THREE.Group();
     const plantain = weaponId === "plantain-piercer";
@@ -1165,7 +1258,9 @@ import * as GameVFX from "./game/vfx.js";
     pickups.splice(0).forEach((item) => removeView(item.view));
     commandRelays.splice(0).forEach((item) => removeView(item.view));
     if (commandCarrier) removeView(commandCarrier.view);
+    if (survivalPortal) removeView(survivalPortal);
     commandCarrier = null;
+    survivalPortal = null;
     elapsed = 0;
     distance = 0;
     points = 0;
@@ -1185,6 +1280,9 @@ import * as GameVFX from "./game/vfx.js";
     relayObjectiveStarted = false;
     relaysDestroyed = 0;
     bossBattleStarted = false;
+    portalSequenceActive = false;
+    portalTimer = 0;
+    wingtailHealth = WINGTAIL_MAX_HEALTH;
     missionObjective = null;
     objectiveOvertime = 0;
     ceilingExposure = 0;
@@ -1195,7 +1293,9 @@ import * as GameVFX from "./game/vfx.js";
     seed = (Date.now() ^ 0x74ac31) >>> 0;
     cityStream?.setSeed(seed, { regenerate: true });
     cityStream?.setLevel(0, { immediate: true });
+    if (cityStream?.root) cityStream.root.visible = true;
     combatDirector?.stop({ clearSchedule: true });
+    if (cityStream?.root) cityStream.root.visible = false;
     combatDirector = createDirector();
     combatDirector.reset({ levelIndex: 0, delay: 0.85 });
     Object.assign(monkey, { x: 0, y: 0.7, z: PLAYER_Z, vy: 0, vx: 0, lane: 1, bank: 0, pitch: 0 });
@@ -1212,6 +1312,7 @@ import * as GameVFX from "./game/vfx.js";
     updateWeaponCooldown();
     updateRageHud();
     updateObjectiveHud();
+    updateBossHud();
     setLevel(0, false);
   }
 
@@ -1294,7 +1395,7 @@ import * as GameVFX from "./game/vfx.js";
   }
 
   function updateWeaponCooldown() {
-    const cooldown = rageTimer > 0 ? RAGE_FIRE_INTERVAL : runStats.cooldown;
+    const cooldown = bossBattleStarted ? RPG_COOLDOWN : rageTimer > 0 ? RAGE_FIRE_INTERVAL : runStats.cooldown;
     const charge = Math.round(clamp(1 - shotCooldown / cooldown, 0, 1) * 100);
     weaponCooldown?.style.setProperty("--weapon-charge", String(charge));
     weaponCooldown?.setAttribute("aria-valuenow", String(charge));
@@ -1367,7 +1468,8 @@ import * as GameVFX from "./game/vfx.js";
 
   function fire(rageShot = rageTimer > 0) {
     if (state !== "playing" || shotCooldown > 0) return;
-    shotCooldown = rageShot ? RAGE_FIRE_INTERVAL : runStats.cooldown;
+    const rpgShot = bossBattleStarted && Boolean(commandCarrier);
+    shotCooldown = rpgShot ? RPG_COOLDOWN : rageShot ? RAGE_FIRE_INTERVAL : runStats.cooldown;
     const target = findAimTarget();
     const direction = new THREE.Vector3(0, 0, -1);
     if (target) {
@@ -1376,15 +1478,15 @@ import * as GameVFX from "./game/vfx.js";
       direction.lerp(tempV, strategicTarget ? 0.96 : innerWidth <= 700 ? 0.82 : 0.68).normalize();
     }
     const weaponId = profile.equipped.weapon;
-    const projectileCount = rageShot ? 1 : runStats.projectiles;
-    const spread = rageShot ? 0 : runStats.spread;
+    const projectileCount = rpgShot || rageShot ? 1 : runStats.projectiles;
+    const spread = rpgShot || rageShot ? 0 : runStats.spread;
     for (let index = 0; index < projectileCount; index += 1) {
       const offset = index - (projectileCount - 1) / 2;
       const shotDirection = direction.clone();
       shotDirection.x += offset * spread;
       shotDirection.y += Math.abs(offset) * spread * 0.16;
       shotDirection.normalize();
-      const view = createShotView(weaponId, rageShot);
+      const view = rpgShot ? createRpgShotView() : createShotView(weaponId, rageShot);
       if (shots.length >= MAX_ACTIVE_SHOTS) {
         const oldest = shots.shift();
         removeView(oldest?.view);
@@ -1396,10 +1498,11 @@ import * as GameVFX from "./game/vfx.js";
         y: view.position.y,
         z: view.position.z,
         previous: view.position.clone(),
-        velocity: shotDirection.multiplyScalar(rageShot ? Math.max(72, runStats.projectileVelocity * 1.25) : runStats.projectileVelocity),
-        damage: rageShot ? Math.max(4, runStats.damage * 2) : runStats.damage,
-        life: rageShot ? 2.5 : 1.9,
+        velocity: shotDirection.multiplyScalar(rpgShot ? 68 : rageShot ? Math.max(72, runStats.projectileVelocity * 1.25) : runStats.projectileVelocity),
+        damage: rpgShot ? (finalePreview ? 8 : RPG_DAMAGE) : rageShot ? Math.max(4, runStats.damage * 2) : runStats.damage,
+        life: rpgShot ? 2.8 : rageShot ? 2.5 : 1.9,
         rage: rageShot,
+        rpg: rpgShot,
         trailTimer: 0,
         spin: randomRange(11, 16) * (simRandom() > 0.5 ? 1 : -1),
         tumble: randomRange(7, 11),
@@ -1410,29 +1513,29 @@ import * as GameVFX from "./game/vfx.js";
         position: view.position,
         velocity: shot.velocity,
         life: 0.14,
-        width: rageShot ? 0.11 : weaponId === "cluster-bunch" ? 0.05 : 0.075,
-        length: rageShot ? 1.8 : 1.2,
-        color: rageShot ? 0xff6a32 : weaponId === "plantain-piercer" ? 0xa8ec58 : 0xffed68,
+        width: rpgShot ? 0.18 : rageShot ? 0.11 : weaponId === "cluster-bunch" ? 0.05 : 0.075,
+        length: rpgShot ? 2.5 : rageShot ? 1.8 : 1.2,
+        color: rpgShot ? 0xffb13b : rageShot ? 0xff6a32 : weaponId === "plantain-piercer" ? 0xa8ec58 : 0xffed68,
       });
     }
+    updateBossHud();
     updateWeaponCooldown();
     audio.playShot?.();
   }
 
   function updateObjectiveHud() {
     const remaining = Math.max(0, 3 - relaysDestroyed);
-    const active = Boolean(missionObjective) || relayObjectiveStarted || bossBattleStarted;
+    const active = Boolean(missionObjective) || relayObjectiveStarted || portalSequenceActive;
     if (objectiveHud) objectiveHud.hidden = !active || state === "victory" || state === "victory-result";
-    if (bossBattleStarted && commandCarrier) {
-      const health = Math.max(0, Math.ceil(commandCarrier.hp));
-      const damageProgress = Math.round((1 - health / commandCarrier.maxHp) * 100);
-      if (objectiveLabel) objectiveLabel.textContent = "Skyshield Titan";
-      if (objectiveCount) objectiveCount.textContent = String(health);
-      if (objectiveUnit) objectiveUnit.textContent = `/ ${commandCarrier.maxHp} HP`;
-      objectiveMeter?.style.setProperty("width", `${damageProgress}%`);
-      objectiveMeter?.parentElement?.setAttribute("aria-label", "Skyshield Titan damage");
+    if (portalSequenceActive) {
+      const progress = Math.round(clamp(portalTimer / PORTAL_DURATION, 0, 1) * 100);
+      if (objectiveLabel) objectiveLabel.textContent = "Survival Portal";
+      if (objectiveCount) objectiveCount.textContent = String(progress);
+      if (objectiveUnit) objectiveUnit.textContent = "% breach";
+      objectiveMeter?.style.setProperty("width", `${progress}%`);
+      objectiveMeter?.parentElement?.setAttribute("aria-label", "Survival portal breach");
       objectiveMeter?.parentElement?.setAttribute("aria-valuemax", "100");
-      objectiveMeter?.parentElement?.setAttribute("aria-valuenow", String(damageProgress));
+      objectiveMeter?.parentElement?.setAttribute("aria-valuenow", String(progress));
     } else if (relayObjectiveStarted) {
       if (objectiveLabel) objectiveLabel.textContent = "Relay Hunt";
       if (objectiveCount) objectiveCount.textContent = String(remaining);
@@ -1451,6 +1554,23 @@ import * as GameVFX from "./game/vfx.js";
       objectiveMeter?.parentElement?.setAttribute("aria-valuemax", String(missionObjective.target));
       objectiveMeter?.parentElement?.setAttribute("aria-valuenow", String(progress));
     }
+  }
+
+  function updateBossHud() {
+    const active = bossBattleStarted && Boolean(commandCarrier) && state === "playing";
+    if (bossBattleHud) bossBattleHud.hidden = !active;
+    document.body.classList.toggle("boss-battle-active", active);
+    if (!active) return;
+    const pilotPercent = Math.round(clamp(wingtailHealth / WINGTAIL_MAX_HEALTH, 0, 1) * 100);
+    const titanPercent = Math.round(clamp(commandCarrier.hp / commandCarrier.maxHp, 0, 1) * 100);
+    wingtailHealthMeter?.style.setProperty("width", `${pilotPercent}%`);
+    wingtailHealthMeter?.parentElement?.setAttribute("aria-valuenow", String(pilotPercent));
+    if (wingtailHealthText) wingtailHealthText.textContent = String(Math.ceil(wingtailHealth));
+    titanHealthMeter?.style.setProperty("width", `${titanPercent}%`);
+    titanHealthMeter?.parentElement?.setAttribute("aria-valuenow", String(titanPercent));
+    if (titanHealthText) titanHealthText.textContent = `${titanPercent}%`;
+    if (titanPhase) titanPhase.textContent = `Titan · Phase ${["I", "II", "III"][commandCarrier.phaseIndex - 1] || "I"}`;
+    if (rpgStatus) rpgStatus.textContent = shotCooldown <= 0 ? "Armed" : "Reloading";
   }
 
   function beginMissionObjective(levelIndex) {
@@ -1515,41 +1635,103 @@ import * as GameVFX from "./game/vfx.js";
     awardSkill("COMMAND RELAY DESTROYED", 2400);
     audio.playJetDestroyed?.(clamp(relay.x / 8, -1, 1));
     updateObjectiveHud();
-    if (relaysDestroyed >= 3) startBossBattle();
+    if (relaysDestroyed >= 3) startPortalSequence();
+  }
+
+  function startPortalSequence() {
+    if (portalSequenceActive || bossBattleStarted || !scene) return;
+    relayObjectiveStarted = false;
+    portalSequenceActive = true;
+    portalTimer = 0;
+    wingtailHealth = WINGTAIL_MAX_HEALTH;
+    jets.splice(0).forEach((jet) => removeView(jet.view));
+    missiles.splice(0).forEach((missile) => removeView(missile.view));
+    missileWarning.hidden = true;
+    lockMeter.style.width = "0%";
+    combatDirector?.stop({ clearSchedule: true });
+    survivalPortal = createSurvivalPortalView();
+    scene.add(survivalPortal);
+    updateObjectiveHud();
+    GameVFX.spawn(vfxManager, "hitFlash", { color: 0x61ead5, intensity: 0.9, impulse: 0.6 });
+    announce("Vesper: Relay lattice collapsing. Enter the survival portal. I am arming Wingtail with the Potassium RPG.");
+  }
+
+  function updateSurvivalPortal(dt) {
+    if (!survivalPortal) return;
+    portalTimer += portalSequenceActive ? dt : 0;
+    const speed = portalSequenceActive ? 34 : 22 + (commandCarrier?.phaseIndex || 1) * 5;
+    survivalPortal.userData.rings.forEach((ring, index) => {
+      ring.position.z += speed * dt;
+      if (ring.position.z > 10) ring.position.z -= 165;
+      ring.rotation.z += dt * (0.36 + index * 0.025) * (index % 2 ? -1 : 1);
+      ring.material.opacity = 0.34 + Math.sin(elapsed * 2.8 + index) * 0.16;
+    });
+    survivalPortal.userData.gate.rotation.z -= dt * 0.7;
+    survivalPortal.userData.gate.scale.setScalar(1 + Math.sin(elapsed * 3.8) * 0.035);
+    survivalPortal.userData.portalLight.intensity = 14 + Math.sin(elapsed * 4.5) * 4;
+    const positions = survivalPortal.userData.particles.geometry.attributes.position;
+    for (let index = 2; index < positions.array.length; index += 3) {
+      positions.array[index] += speed * dt * 1.35;
+      if (positions.array[index] > 12) positions.array[index] -= 180;
+    }
+    positions.needsUpdate = true;
+    survivalPortal.userData.particles.rotation.z += dt * 0.035;
+    if (portalSequenceActive) {
+      updateObjectiveHud();
+      if (portalTimer >= PORTAL_DURATION) startBossBattle();
+    }
   }
 
   function startBossBattle() {
     if (bossBattleStarted || !scene) return;
     bossBattleStarted = true;
+    portalSequenceActive = false;
     relayObjectiveStarted = false;
+    if (!survivalPortal) {
+      survivalPortal = createSurvivalPortalView();
+      scene.add(survivalPortal);
+    }
+    if (cityStream?.root) cityStream.root.visible = false;
     const view = createCommandCarrierView();
     commandCarrier = {
       spec: { name: "SKYSHIELD TITAN" },
       view,
-      hp: finalePreview ? 3 : difficulty.bossHp,
-      maxHp: finalePreview ? 3 : difficulty.bossHp,
+      hp: finalePreview ? 24 : difficulty.bossHp,
+      maxHp: finalePreview ? 24 : difficulty.bossHp,
       x: 0,
       y: 2.1,
       z: -108,
       phase: 0,
+      phaseIndex: 1,
       radius: 3.45,
       fireTimer: 2.4,
     };
     view.position.set(commandCarrier.x, commandCarrier.y, commandCarrier.z);
     scene.add(view);
     updateObjectiveHud();
+    updateBossHud();
     GameVFX.spawn(vfxManager, "hitFlash", { color: 0xff382f, intensity: 0.72, impulse: 0.5 });
     audio.playLevel?.(7);
-    announce("The relays were only its shield. Skyshield Titan inbound. Destroy the command core.");
+    announce("Portal breach complete. Potassium RPG armed. Break the Titan across all three combat phases.");
   }
 
   function updateCommandCarrier(dt) {
     if (!commandCarrier) return;
     const boss = commandCarrier;
     boss.phase += dt;
+    const healthRatio = clamp(boss.hp / boss.maxHp, 0, 1);
+    const nextPhase = healthRatio > 0.66 ? 1 : healthRatio > 0.33 ? 2 : 3;
+    if (nextPhase !== boss.phaseIndex) {
+      boss.phaseIndex = nextPhase;
+      boss.fireTimer = Math.min(boss.fireTimer, 0.75);
+      wingtailHealth = Math.min(WINGTAIL_MAX_HEALTH, wingtailHealth + 18);
+      updateBossHud();
+      GameVFX.spawn(vfxManager, "hitFlash", { color: nextPhase === 3 ? 0xff3e2f : 0xffb13b, intensity: 0.84, impulse: 0.55 });
+      announce(nextPhase === 2 ? "Titan armor breached. Vesper patched 18 health. Phase two: missile lattice deployed." : "Titan core exposed. Emergency repair complete. Final phase: survive the saturation barrage.");
+    }
     if (boss.z < -55) boss.z = Math.min(-55, boss.z + flightSpeed() * 0.2 * dt);
-    boss.x = Math.sin(boss.phase * 0.46) * 5.1;
-    boss.y = 1.75 + Math.sin(boss.phase * 0.73) * 1.25;
+    boss.x = Math.sin(boss.phase * (0.42 + boss.phaseIndex * 0.11)) * (4.2 + boss.phaseIndex * 1.25);
+    boss.y = 1.75 + Math.sin(boss.phase * (0.68 + boss.phaseIndex * 0.08)) * (0.9 + boss.phaseIndex * 0.42);
     boss.view.position.set(boss.x, boss.y, boss.z);
     boss.view.rotation.z = Math.sin(boss.phase * 0.46) * -0.08;
     boss.view.userData.rings.forEach((ring, index) => { ring.rotation.z += dt * (0.8 + index * 0.35); });
@@ -1558,21 +1740,25 @@ import * as GameVFX from "./game/vfx.js";
     boss.view.userData.beacon.intensity = 7 + Math.sin(elapsed * 6) * 2;
 
     boss.fireTimer -= dt;
-    if (boss.z >= -72 && boss.fireTimer <= 0 && missiles.length < missileLimit()) {
-      const missile = beginMissileLock(boss, {
-        missileId: `titan-${seed}-${Math.floor(elapsed * 1000)}`,
-        leadTime: clamp(1.25 / difficulty.missileSpeed, 0.72, 1.45),
-        bearingHint: boss.x < -1 ? "left" : boss.x > 1 ? "right" : "ahead",
-      });
-      if (missile) {
-        missile.pendingLaunch = {
-          speedScale: difficulty.missileSpeed,
-          guidanceScale: clamp(difficulty.missileSpeed, 0.95, 1.25),
-          lifetime: difficultyId === "insanity" ? 6.6 : 5.8,
-        };
+    if (boss.z >= -72 && boss.fireTimer <= 0 && missiles.length < missileLimit() + 2) {
+      for (let salvo = 0; salvo < boss.phaseIndex; salvo += 1) {
+        if (missiles.length >= missileLimit() + 2) break;
+        const missile = beginMissileLock(boss, {
+          missileId: `titan-${seed}-${Math.floor(elapsed * 1000)}-${salvo}`,
+          leadTime: clamp((1.35 - salvo * 0.12) / difficulty.missileSpeed, 0.62, 1.45),
+          bearingHint: salvo % 2 ? "left" : boss.x > 1 ? "right" : "ahead",
+        });
+        if (missile) {
+          missile.pendingLaunch = {
+            speedScale: difficulty.missileSpeed * (1 + boss.phaseIndex * 0.05),
+            guidanceScale: clamp(difficulty.missileSpeed + boss.phaseIndex * 0.05, 0.95, 1.4),
+            lifetime: difficultyId === "insanity" ? 7.2 : 6.2,
+          };
+        }
       }
-      boss.fireTimer = difficulty.bossFireInterval * randomRange(0.82, 1.14);
+      boss.fireTimer = difficulty.bossFireInterval * [1, 0.78, 0.58][boss.phaseIndex - 1] * randomRange(0.86, 1.12);
     }
+    updateBossHud();
   }
 
   function destroyCommandCarrier() {
@@ -1590,6 +1776,7 @@ import * as GameVFX from "./game/vfx.js";
     }
     removeView(boss.view);
     commandCarrier = null;
+    updateBossHud();
     awardSkill("SKYSHIELD TITAN DESTROYED", 12000);
     earnCoconuts(100);
     audio.playJetDestroyed?.(0);
@@ -1650,6 +1837,10 @@ import * as GameVFX from "./game/vfx.js";
     commandRelays.splice(0).forEach((relay) => removeView(relay.view));
     if (commandCarrier) removeView(commandCarrier.view);
     commandCarrier = null;
+    if (survivalPortal) removeView(survivalPortal);
+    survivalPortal = null;
+    portalSequenceActive = false;
+    bossBattleStarted = false;
     jets.splice(0).forEach((jet) => removeView(jet.view));
     missiles.splice(0).forEach((missile) => removeView(missile.view));
     combatDirector?.stop({ clearSchedule: true });
@@ -1658,6 +1849,7 @@ import * as GameVFX from "./game/vfx.js";
     if (liftButton) liftButton.disabled = true;
     keys.clear();
     updateObjectiveHud();
+    updateBossHud();
     updateRageHud();
     earnCoconuts(75);
     audio.stopRun?.();
@@ -1950,21 +2142,38 @@ import * as GameVFX from "./game/vfx.js";
   }
 
   function absorbHit(reason, position) {
-    if (shields <= 0) return false;
-    shields -= 1;
-    updateProgressDisplays();
+    if (shields > 0) {
+      shields -= 1;
+      updateProgressDisplays();
+      cameraShake = reducedMotion ? 0.05 : 0.2;
+      GameVFX.spawn(vfxManager, "explosion", {
+        position,
+        count: 16,
+        scale: 0.82,
+        speed: 5.5,
+        color: 0x62ead0,
+        impulse: 0.32,
+      });
+      GameVFX.spawn(vfxManager, "hitFlash", { color: 0x62ead0, intensity: 0.62, impulse: 0.32 });
+      announce("Coconut shield absorbed " + reason + ". " + shields + " remaining.");
+      return true;
+    }
+    if (!bossBattleStarted) return false;
+    const damage = reason.includes("collision") ? 28 : difficultyId === "insanity" ? 18 : difficultyId === "hard" ? 14 : 10;
+    wingtailHealth = Math.max(0, wingtailHealth - damage);
+    updateBossHud();
     cameraShake = reducedMotion ? 0.05 : 0.2;
     GameVFX.spawn(vfxManager, "explosion", {
       position,
-      count: 16,
-      scale: 0.82,
-      speed: 5.5,
-      color: 0x62ead0,
-      impulse: 0.32,
+      count: 22,
+      scale: 1.05,
+      speed: 6.8,
+      color: 0xff6846,
+      impulse: 0.52,
     });
-    GameVFX.spawn(vfxManager, "hitFlash", { color: 0x62ead0, intensity: 0.62, impulse: 0.32 });
-    announce("Coconut shield absorbed " + reason + ". " + shields + " remaining.");
-    return true;
+    GameVFX.spawn(vfxManager, "hitFlash", { color: 0xff4935, intensity: 0.82, impulse: 0.5 });
+    if (wingtailHealth > 0) announce(`Wingtail hit by ${reason}. ${Math.ceil(wingtailHealth)} health remaining.`);
+    return wingtailHealth > 0;
   }
 
   function updateJets(dt) {
@@ -2138,18 +2347,18 @@ import * as GameVFX from "./game/vfx.js";
       shot.view.rotation.z += shot.spin * dt;
       shot.view.rotation.x = Math.sin((1.9 - shot.life) * shot.tumble) * 0.32;
       shot.view.rotation.y = Math.cos((1.9 - shot.life) * shot.tumble * 0.74) * 0.24;
-      if (shot.rage && shot.view.userData.flame) {
+      if ((shot.rage || shot.rpg) && shot.view.userData.flame) {
         shot.view.userData.flame.scale.y = 0.82 + Math.sin(performance.now() * 0.03) * 0.18;
       }
       shot.trailTimer -= dt;
       if (shot.trailTimer <= 0) {
-        shot.trailTimer = shot.rage ? 0.09 : mobileMode ? 0.06 : 0.035;
+        shot.trailTimer = shot.rpg ? 0.055 : shot.rage ? 0.09 : mobileMode ? 0.06 : 0.035;
         GameVFX.spawn(vfxManager, "projectileTrail", {
           start: shot.previous,
           end: shot.view.position,
           life: 0.16,
-          width: shot.rage ? 0.105 : 0.055,
-          color: shot.rage ? 0xff6935 : 0xffe58b,
+          width: shot.rpg ? 0.16 : shot.rage ? 0.105 : 0.055,
+          color: shot.rpg ? 0xffb13b : shot.rage ? 0xff6935 : 0xffe58b,
         });
       }
       let consumed = false;
@@ -2162,8 +2371,8 @@ import * as GameVFX from "./game/vfx.js";
           missiles.splice(m, 1);
           awardSkill("MISSILE DOWN", 300);
           advanceMissionObjective("missile");
-          consumed = true;
-          break;
+          consumed = !shot.rpg;
+          if (consumed) break;
         }
       }
       if (!consumed) {
@@ -2176,15 +2385,15 @@ import * as GameVFX from "./game/vfx.js";
               y: commandCarrier.y + randomRange(-0.8, 0.8),
               z: commandCarrier.z + randomRange(-2.8, 2.8),
             },
-            count: defeated ? 42 : 9,
-            scale: defeated ? 2.3 : 0.52,
+            count: defeated ? 42 : shot.rpg ? 18 : 9,
+            scale: defeated ? 2.3 : shot.rpg ? 1.05 : 0.52,
             speed: defeated ? 10 : 5,
             color: defeated ? 0xff4935 : 0xffb344,
             impulse: defeated ? 1.1 : 0.14,
           });
           if (!defeated) {
             commandCarrier.view.userData.coreMaterial.opacity = clamp(commandCarrier.hp / commandCarrier.maxHp, 0.3, 1);
-            updateObjectiveHud();
+            updateBossHud();
           } else destroyCommandCarrier();
           consumed = true;
         }
@@ -2297,7 +2506,13 @@ import * as GameVFX from "./game/vfx.js";
 
   function updateScenery(dt) {
     const speed = flightSpeed() * 0.5 * runStats.speed;
-    applyCityEnvironment(cityStream?.update(dt, { speed }));
+    const environment = cityStream?.update(dt, { speed });
+    if (portalSequenceActive || bossBattleStarted) {
+      scene.background.setHex(bossBattleStarted ? 0x05070d : 0x07161b);
+      scene.fog.color.setHex(bossBattleStarted ? 0x11101b : 0x08252a);
+      hemisphereLight?.color.setHex(0x75d8d0);
+      playerLight?.color.setHex(0xffd56b);
+    } else applyCityEnvironment(environment);
     for (const cloud of cloudGroup.children) {
       cloud.position.z += speed * dt * 0.34;
       if (cloud.position.z > 18) cloud.position.z -= 148;
@@ -2366,6 +2581,8 @@ import * as GameVFX from "./game/vfx.js";
     if (state !== "playing") return;
     updateCommandRelays(dt);
     if (state !== "playing") return;
+    updateSurvivalPortal(dt);
+    if (state !== "playing") return;
     updateCommandCarrier(dt);
     if (state !== "playing") return;
     updatePickups(dt);
@@ -2383,6 +2600,8 @@ import * as GameVFX from "./game/vfx.js";
     state = "crashing";
     missionVoice.pause();
     hideVesperComms();
+    if (bossBattleHud) bossBattleHud.hidden = true;
+    document.body.classList.remove("boss-battle-active");
     updateRageHud();
     shootButton.disabled = true;
     if (liftButton) liftButton.disabled = true;
