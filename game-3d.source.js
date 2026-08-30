@@ -158,12 +158,12 @@ import * as GameVFX from "./game/vfx.js";
       missileSpeed: 0.92,
       crosswind: 0.68,
       startingShields: 2,
-      bossHp: 160,
+      bossHp: 240,
       bossFireInterval: 3.8,
       altitudeTracking: 0.22,
       ceilingDelay: 6.5,
       ceilingHunters: 1,
-      description: "Slower pursuit, lighter armor, two emergency shields, fewer fighters, and a 160-hit-point final Titan.",
+      description: "Slower pursuit, lighter armor, two emergency shields, fewer fighters, and a 240-hit-point armored Titan.",
     },
     hard: {
       name: "Hard",
@@ -175,12 +175,12 @@ import * as GameVFX from "./game/vfx.js";
       missileSpeed: 1.08,
       crosswind: 1,
       startingShields: 1,
-      bossHp: 240,
+      bossHp: 400,
       bossFireInterval: 2.8,
       altitudeTracking: 0.58,
       ceilingDelay: 3.2,
       ceilingHunters: 1,
-      description: "Faster airspace, armored fighters, one emergency shield, aggressive missile formations, and a 240-hit-point final Titan.",
+      description: "Faster airspace, armored fighters, one emergency shield, aggressive missile formations, and a 400-hit-point armored Titan.",
     },
     insanity: {
       name: "Banana Insanity",
@@ -192,12 +192,12 @@ import * as GameVFX from "./game/vfx.js";
       missileSpeed: 1.38,
       crosswind: 1.7,
       startingShields: 0,
-      bossHp: 340,
+      bossHp: 650,
       bossFireInterval: 1.7,
       altitudeTracking: 0.9,
       ceilingDelay: 1.35,
       ceilingHunters: 2,
-      description: "Extreme velocity, hunter squadrons, five extra missiles, violent crosswinds, no starting shields, and a 340-hit-point Titan.",
+      description: "Extreme velocity, hunter squadrons, five extra missiles, violent crosswinds, no starting shields, and a 650-hit-point armored Titan.",
     },
   });
 
@@ -1569,7 +1569,10 @@ import * as GameVFX from "./game/vfx.js";
     titanHealthMeter?.style.setProperty("width", `${titanPercent}%`);
     titanHealthMeter?.parentElement?.setAttribute("aria-valuenow", String(titanPercent));
     if (titanHealthText) titanHealthText.textContent = `${titanPercent}%`;
-    if (titanPhase) titanPhase.textContent = `Titan · Phase ${["I", "II", "III"][commandCarrier.phaseIndex - 1] || "I"}`;
+    if (titanPhase) {
+      const armor = Math.round(([0.82, 0.68, 0.54][commandCarrier.phaseIndex - 1] || 0.82) * 100);
+      titanPhase.textContent = `Titan · P${commandCarrier.phaseIndex} · ${armor}% armor`;
+    }
     if (rpgStatus) rpgStatus.textContent = shotCooldown <= 0 ? "Armed" : "Reloading";
   }
 
@@ -1696,8 +1699,8 @@ import * as GameVFX from "./game/vfx.js";
     commandCarrier = {
       spec: { name: "SKYSHIELD TITAN" },
       view,
-      hp: finalePreview ? 24 : difficulty.bossHp,
-      maxHp: finalePreview ? 24 : difficulty.bossHp,
+      hp: finalePreview ? 96 : difficulty.bossHp,
+      maxHp: finalePreview ? 96 : difficulty.bossHp,
       x: 0,
       y: 2.1,
       z: -108,
@@ -2377,7 +2380,9 @@ import * as GameVFX from "./game/vfx.js";
       }
       if (!consumed) {
         if (commandCarrier && segmentDistance(new THREE.Vector3(commandCarrier.x, commandCarrier.y, commandCarrier.z), shot.previous, shot.view.position) < commandCarrier.radius) {
-          commandCarrier.hp -= shot.damage;
+          const armorMultiplier = [0.82, 0.68, 0.54][commandCarrier.phaseIndex - 1] || 0.82;
+          const titanDamage = shot.rpg ? shot.damage * armorMultiplier : shot.damage * 0.35;
+          commandCarrier.hp -= titanDamage;
           const defeated = commandCarrier.hp <= 0;
           GameVFX.spawn(vfxManager, "explosion", {
             position: {
