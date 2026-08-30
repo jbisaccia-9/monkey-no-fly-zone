@@ -158,12 +158,12 @@ import * as GameVFX from "./game/vfx.js";
       missileSpeed: 0.92,
       crosswind: 0.68,
       startingShields: 2,
-      bossHp: 240,
+      bossHp: 320,
       bossFireInterval: 3.8,
       altitudeTracking: 0.22,
       ceilingDelay: 6.5,
       ceilingHunters: 1,
-      description: "Slower pursuit, lighter armor, two emergency shields, fewer fighters, and a 240-hit-point armored Titan.",
+      description: "Slower pursuit, lighter armor, two emergency shields, fewer fighters, and a 320-hit-point armored Titan.",
     },
     hard: {
       name: "Hard",
@@ -175,12 +175,12 @@ import * as GameVFX from "./game/vfx.js";
       missileSpeed: 1.08,
       crosswind: 1,
       startingShields: 1,
-      bossHp: 400,
+      bossHp: 520,
       bossFireInterval: 2.8,
       altitudeTracking: 0.58,
       ceilingDelay: 3.2,
       ceilingHunters: 1,
-      description: "Faster airspace, armored fighters, one emergency shield, aggressive missile formations, and a 400-hit-point armored Titan.",
+      description: "Faster airspace, armored fighters, one emergency shield, aggressive missile formations, and a 520-hit-point armored Titan.",
     },
     insanity: {
       name: "Banana Insanity",
@@ -192,12 +192,12 @@ import * as GameVFX from "./game/vfx.js";
       missileSpeed: 1.38,
       crosswind: 1.7,
       startingShields: 0,
-      bossHp: 650,
+      bossHp: 900,
       bossFireInterval: 1.7,
       altitudeTracking: 0.9,
       ceilingDelay: 1.35,
       ceilingHunters: 2,
-      description: "Extreme velocity, hunter squadrons, five extra missiles, violent crosswinds, no starting shields, and a 650-hit-point armored Titan.",
+      description: "Extreme velocity, hunter squadrons, five extra missiles, violent crosswinds, no starting shields, and a 900-hit-point armored Titan.",
     },
   });
 
@@ -738,7 +738,20 @@ import * as GameVFX from "./game/vfx.js";
     }
     const beacon = new THREE.PointLight(0xff3f35, 4.8, 12, 2);
     group.add(beacon);
-    group.userData = { core, rings, beacon };
+    const shieldMaterial = new THREE.MeshBasicMaterial({
+      color: 0x62ead0,
+      transparent: true,
+      opacity: 0.24,
+      wireframe: true,
+      depthWrite: false,
+      toneMapped: false,
+    });
+    const shield = new THREE.Mesh(new THREE.SphereGeometry(1.82, 18, 12), shieldMaterial);
+    shield.scale.y = 1.35;
+    group.add(shield);
+    const shieldLight = new THREE.PointLight(0x62ead0, 3.2, 8, 2);
+    group.add(shieldLight);
+    group.userData = { core, rings, beacon, shield, shieldMaterial, shieldLight };
     return group;
   }
 
@@ -1499,7 +1512,7 @@ import * as GameVFX from "./game/vfx.js";
         z: view.position.z,
         previous: view.position.clone(),
         velocity: shotDirection.multiplyScalar(rpgShot ? 68 : rageShot ? Math.max(72, runStats.projectileVelocity * 1.25) : runStats.projectileVelocity),
-        damage: rpgShot ? (finalePreview ? 8 : RPG_DAMAGE) : rageShot ? Math.max(4, runStats.damage * 2) : runStats.damage,
+        damage: rpgShot ? RPG_DAMAGE : rageShot ? Math.max(4, runStats.damage * 2) : runStats.damage,
         life: rpgShot ? 2.8 : rageShot ? 2.5 : 1.9,
         rage: rageShot,
         rpg: rpgShot,
@@ -1604,17 +1617,22 @@ import * as GameVFX from "./game/vfx.js";
     const altitudes = [0.1, 2.15, -0.65];
     for (let index = 0; index < 3; index += 1) {
       const view = createCommandRelayView();
+      const coreHp = Math.ceil((20 + index * 8) * difficulty.enemyHealth);
+      const shieldHp = Math.ceil((14 + index * 7) * difficulty.enemyHealth);
       const relay = {
         spec: { name: `COMMAND RELAY ${index + 1}` },
         view,
-        hp: finalePreview ? 1 : Math.ceil((8 + index * 2) * difficulty.enemyHealth),
-        maxHp: finalePreview ? 1 : Math.ceil((8 + index * 2) * difficulty.enemyHealth),
+        hp: coreHp,
+        maxHp: coreHp,
+        shieldHp,
+        maxShieldHp: shieldHp,
         lane: lanes[index],
         x: LANES[lanes[index]],
         y: altitudes[index],
         z: -72 - index * 48,
         phase: index * 2.1,
-        radius: 1.42,
+        fireTimer: 2.6 + index * 0.9,
+        radius: 1.82,
       };
       view.position.set(relay.x, relay.y, relay.z);
       scene.add(view);
@@ -1622,7 +1640,7 @@ import * as GameVFX from "./game/vfx.js";
     }
     updateObjectiveHud();
     showVesperComms();
-    announce("Relay Hunt active. Destroy all three command relays to free the stolen fleet.");
+    announce("Relay Hunt active. Break each cyan defense shield, destroy the red core, and evade relay counterfire.");
   }
 
   function destroyCommandRelay(index) {
@@ -1699,8 +1717,8 @@ import * as GameVFX from "./game/vfx.js";
     commandCarrier = {
       spec: { name: "SKYSHIELD TITAN" },
       view,
-      hp: finalePreview ? 96 : difficulty.bossHp,
-      maxHp: finalePreview ? 96 : difficulty.bossHp,
+      hp: difficulty.bossHp,
+      maxHp: difficulty.bossHp,
       x: 0,
       y: 2.1,
       z: -108,
@@ -1800,6 +1818,28 @@ import * as GameVFX from "./game/vfx.js";
       relay.view.userData.rings.forEach((ring, ringIndex) => { ring.rotation.z += dt * (0.9 + ringIndex * 0.25); });
       relay.view.userData.core.scale.setScalar(0.9 + Math.sin(elapsed * 6 + relay.phase) * 0.12);
       relay.view.userData.beacon.intensity = 3.8 + Math.sin(elapsed * 7 + relay.phase) * 1.2;
+      if (relay.shieldHp > 0) {
+        relay.view.userData.shield.rotation.y += dt * 0.62;
+        relay.view.userData.shield.rotation.z -= dt * 0.38;
+        relay.view.userData.shieldMaterial.opacity = 0.18 + Math.sin(elapsed * 5.2 + relay.phase) * 0.08;
+        relay.view.userData.shieldLight.intensity = 2.6 + Math.sin(elapsed * 6.4 + relay.phase) * 1.1;
+      }
+      relay.fireTimer -= dt;
+      if (relay.z >= -96 && relay.z <= -24 && relay.fireTimer <= 0 && missiles.length < missileLimit()) {
+        const missile = beginMissileLock(relay, {
+          missileId: `relay-${index}-${seed}-${Math.floor(elapsed * 1000)}`,
+          leadTime: difficultyId === "insanity" ? 0.82 : difficultyId === "hard" ? 1.08 : 1.4,
+          bearingHint: relay.x < -1 ? "left" : relay.x > 1 ? "right" : "ahead",
+        });
+        if (missile) {
+          missile.pendingLaunch = {
+            speedScale: difficulty.missileSpeed * 1.06,
+            guidanceScale: clamp(difficulty.missileSpeed, 0.94, 1.3),
+            lifetime: difficultyId === "insanity" ? 6.8 : 5.9,
+          };
+        }
+        relay.fireTimer = randomRange(3.4, 5.2) / clamp(difficulty.missileSpeed, 0.8, 1.45);
+      }
       if (Math.abs(relay.z - monkey.z) < 1.6 && Math.hypot(relay.x - monkey.x, relay.y - monkey.y) < relay.radius + monkey.radius) {
         if (!absorbHit("command relay collision", relay)) {
           gameOver("command relay collision");
@@ -2251,7 +2291,7 @@ import * as GameVFX from "./game/vfx.js";
     for (let i = missiles.length - 1; i >= 0; i -= 1) {
       const missile = missiles[i];
       if (missile.state === "locking") {
-        if (!missile.source || (!jets.includes(missile.source) && missile.source !== commandCarrier)) {
+        if (!missile.source || (!jets.includes(missile.source) && !commandRelays.includes(missile.source) && missile.source !== commandCarrier)) {
           removeView(missile.view);
           missiles.splice(i, 1);
           continue;
@@ -2407,18 +2447,31 @@ import * as GameVFX from "./game/vfx.js";
         for (let relayIndex = commandRelays.length - 1; relayIndex >= 0; relayIndex -= 1) {
           const relay = commandRelays[relayIndex];
           if (segmentDistance(new THREE.Vector3(relay.x, relay.y, relay.z), shot.previous, shot.view.position) < relay.radius) {
-            relay.hp -= shot.damage;
+            const shielded = relay.shieldHp > 0;
+            if (shielded) relay.shieldHp = Math.max(0, relay.shieldHp - shot.damage);
+            else relay.hp -= shot.damage;
+            const shieldBroken = shielded && relay.shieldHp <= 0;
+            if (shieldBroken) {
+              relay.view.userData.shield.visible = false;
+              relay.view.userData.shieldLight.intensity = 0;
+              GameVFX.spawn(vfxManager, "hitFlash", { color: 0x62ead0, intensity: 0.68, impulse: 0.36 });
+              awardSkill(`${relay.spec.name} SHIELD BROKEN`, 600);
+            }
             GameVFX.spawn(vfxManager, "explosion", {
               position: relay,
-              count: relay.hp <= 0 ? 30 : 8,
-              scale: relay.hp <= 0 ? 1.6 : 0.42,
-              speed: relay.hp <= 0 ? 8 : 4.5,
-              color: relay.hp <= 0 ? 0xff563d : 0xffc35a,
-              impulse: relay.hp <= 0 ? 0.8 : 0.12,
+              count: relay.hp <= 0 && !shielded ? 30 : shieldBroken ? 18 : 8,
+              scale: relay.hp <= 0 && !shielded ? 1.6 : shieldBroken ? 0.9 : 0.42,
+              speed: relay.hp <= 0 && !shielded ? 8 : shieldBroken ? 6.5 : 4.5,
+              color: shielded ? 0x62ead0 : relay.hp <= 0 ? 0xff563d : 0xffc35a,
+              impulse: relay.hp <= 0 && !shielded ? 0.8 : shieldBroken ? 0.42 : 0.12,
             });
-            relay.view.userData.core.material.opacity = clamp(relay.hp / relay.maxHp, 0.28, 1);
-            if (relay.hp <= 0) destroyCommandRelay(relayIndex);
-            else announce(`${relay.spec.name} integrity ${Math.max(0, Math.ceil((relay.hp / relay.maxHp) * 100))} percent.`);
+            if (!shielded) relay.view.userData.core.material.opacity = clamp(relay.hp / relay.maxHp, 0.28, 1);
+            if (!shielded && relay.hp <= 0) destroyCommandRelay(relayIndex);
+            else if (!shieldBroken) {
+              const layerHp = shielded ? relay.shieldHp : relay.hp;
+              const layerMax = shielded ? relay.maxShieldHp : relay.maxHp;
+              announce(`${relay.spec.name} ${shielded ? "shield" : "core"} integrity ${Math.max(0, Math.ceil((layerHp / layerMax) * 100))} percent.`);
+            }
             consumed = true;
             break;
           }
@@ -2501,7 +2554,8 @@ import * as GameVFX from "./game/vfx.js";
     }
     if (targetStatus) {
       const targetName = target === commandCarrier ? "TITAN" : target.spec.name;
-      targetStatus.textContent = `${targetName} · ${Math.max(0, Math.ceil(target.hp || 0))} HP`;
+      const targetLayer = target !== commandCarrier && target.shieldHp > 0 ? `SHIELD ${Math.ceil(target.shieldHp)}` : `CORE ${Math.max(0, Math.ceil(target.hp || 0))}`;
+      targetStatus.textContent = `${targetName} · ${target === commandCarrier ? `${Math.max(0, Math.ceil(target.hp || 0))} HP` : targetLayer}`;
     }
     if (targetRange) {
       targetRange.hidden = false;

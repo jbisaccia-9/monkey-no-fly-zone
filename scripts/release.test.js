@@ -35,7 +35,7 @@ test("3D source integrates every gameplay module", () => {
   assert.match(source, /function startRelayObjective\(/, "the final level should deploy command relays");
   assert.match(source, /function startBossBattle\(/, "destroying the relays should summon the final boss");
   assert.match(source, /function destroyCommandCarrier\(/, "destroying the Titan should produce a victory state");
-  assert.match(source, /bossHp: 650/, "Banana Insanity should field the strongest Titan");
+  assert.match(source, /bossHp: 900/, "Banana Insanity should field the strongest Titan");
   assert.match(source, /name: "LAST STAND"[^\n]+speed: 44/, "the final city sector should be substantially faster");
   assert.match(source, /f16: \{[^\n]+hp: 3/, "F-16s should survive multiple standard banana hits");
   assert.match(source, /spec\.hp \* \(1 \+ currentLevel \* 0\.12\) \* difficulty\.enemyHealth/, "aircraft armor should scale by level and mode");
@@ -50,8 +50,9 @@ test("3D source integrates every gameplay module", () => {
   assert.match(source, /finale-preview/, "the published game should expose an opt-in finale test flight");
   assert.match(source, /function installFieldUpgrade\(/, "level upgrades should install without interrupting flight");
   assert.doesNotMatch(source, /state = "upgrading"/, "level changes should never pause for an upgrade prompt");
-  assert.match(source, /hp: finalePreview \? 1/, "the finale route should make command relays quick to test");
-  assert.match(source, /hp: finalePreview \? 96/, "the finale route should preserve a meaningful Titan battle");
+  assert.doesNotMatch(source, /hp: finalePreview \?/, "the finale route should not nerf strategic targets");
+  assert.match(source, /shieldHp = Math\.ceil\(\(14 \+ index \* 7\)/, "command relays should have a separate shield layer");
+  assert.match(source, /commandRelays\.includes\(missile\.source\)/, "command relays should launch valid missile counterfire");
   assert.match(source, /function startPortalSequence\(/, "the relay collapse should open a dedicated survival portal");
   assert.match(source, /function createRpgShotView\(/, "the Titan battle should arm Wingtail with a unique RPG");
   assert.match(source, /WINGTAIL_MAX_HEALTH = 100/, "Wingtail should receive a dedicated boss-battle health pool");

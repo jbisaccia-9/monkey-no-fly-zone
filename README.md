@@ -76,6 +76,7 @@ Then visit `http://localhost:8080`.
 15. The corridor-reliability edition bounded Level 4 objective overtime and strengthened banana aim correction against command relays and the Skyshield Titan, ensuring the final enemy always becomes reachable.
 16. The survival-portal edition turned the Titan finale into a separate three-phase arena, added a boss-exclusive Potassium RPG, independent Wingtail and Titan health bars, escalating missile salvos, and a longer difficulty-scaled final battle.
 17. The Titan-resistance edition replaced the three-shot preview boss with a 96-point armored encounter, raised campaign Titan durability to 240/400/650 health, and added phase-specific RPG resistance for a true endurance finale.
+18. The siege edition removed every finale-preview combat nerf, raised Titan durability to 320/520/900 health, and rebuilt each command relay with a separate visible energy shield, tougher armored core, and independent missile counterfire.
 
 Joseph originally began the broader game experiment in April 2026, when Codex had only recently become available to him. He later revisited Monkey No-Fly Zone as a teaching example for his intern, his CEO's 17-year-old son, to show that coding and AI could produce a real playable game rather than only snippets or mockups. Small changes to the instructions, combined with focused sub-agent reviews and repeated hands-on testing, drove the progression from the early arcade loop to this 3D release.
 
@@ -91,7 +92,7 @@ npm run build
 npm test
 ```
 
-The build produces `game.js`, embeds every referenced image and voice track into `monkey-no-fly-zone-standalone.html`, and verifies 99 required DOM hooks plus bundle integrity. The current release bundles ten modules into 683.1 KB, passes eleven automated tests across the source and standalone release, and ships as a self-contained 25.67 MB HTML game.
+The build produces `game.js`, embeds every referenced image and voice track into `monkey-no-fly-zone-standalone.html`, and verifies 99 required DOM hooks plus bundle integrity. The current release bundles ten modules into 684.6 KB, passes eleven automated tests across the source and standalone release, and ships as a self-contained 25.67 MB HTML game.
 
 ## Project Layout
 
