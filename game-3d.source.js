@@ -203,7 +203,7 @@ import * as GameVFX from "./game/vfx.js";
 
   const MISSION_OBJECTIVES = Object.freeze({
     1: { type: "pickup", label: "Supply Sweep", unit: "caches", target: 3, briefing: "Recover three airborne supply caches before leaving the industrial sector." },
-    3: { type: "jet", label: "Air Superiority", unit: "fighters", target: 5, briefing: "Break the strike formation. Destroy five hostile aircraft to open the next corridor." },
+    3: { type: "jet", label: "Air Superiority", unit: "fighters", target: 4, briefing: "Break the strike formation. Destroy four hostile aircraft to open the next corridor." },
     5: { type: "missile", label: "Missile Screen", unit: "missiles", target: 4, briefing: "Shoot down four incoming missiles before the fortress approach." },
   });
 
@@ -287,6 +287,7 @@ import * as GameVFX from "./game/vfx.js";
   let bossBattleStarted = false;
   let commandCarrier = null;
   let missionObjective = null;
+  let objectiveOvertime = 0;
   let ceilingExposure = 0;
   let best = Number(localStorage.getItem("monkeyNoFlyBest3D") || localStorage.getItem("monkeyNoFlyBest") || 0);
 
@@ -1185,6 +1186,7 @@ import * as GameVFX from "./game/vfx.js";
     relaysDestroyed = 0;
     bossBattleStarted = false;
     missionObjective = null;
+    objectiveOvertime = 0;
     ceilingExposure = 0;
     missionVoice.pause();
     missionVoice.currentTime = 0;
@@ -1370,7 +1372,8 @@ import * as GameVFX from "./game/vfx.js";
     const direction = new THREE.Vector3(0, 0, -1);
     if (target) {
       tempV.set(target.x - monkey.x, target.y - monkey.y, target.z - monkey.z).normalize();
-      direction.lerp(tempV, innerWidth <= 700 ? 0.82 : 0.68).normalize();
+      const strategicTarget = target === commandCarrier || commandRelays.includes(target);
+      direction.lerp(tempV, strategicTarget ? 0.96 : innerWidth <= 700 ? 0.82 : 0.68).normalize();
     }
     const weaponId = profile.equipped.weapon;
     const projectileCount = rageShot ? 1 : runStats.projectiles;
@@ -1453,6 +1456,7 @@ import * as GameVFX from "./game/vfx.js";
   function beginMissionObjective(levelIndex) {
     const spec = MISSION_OBJECTIVES[levelIndex];
     missionObjective = spec ? { ...spec, progress: 0, complete: false, levelIndex } : null;
+    objectiveOvertime = 0;
     if (missionObjective?.type === "pickup") pickupTimer = Math.min(pickupTimer, 1.2);
     updateObjectiveHud();
   }
@@ -1791,8 +1795,15 @@ import * as GameVFX from "./game/vfx.js";
   function updateLevel() {
     const nextLevel = LEVELS[currentLevel + 1];
     if (nextLevel && missionObjective && !missionObjective.complete && elapsed >= nextLevel.time) {
+      objectiveOvertime += FIXED_STEP;
       elapsed = nextLevel.time - 0.01;
-      return;
+      if (!missionObjective.overtimeAnnounced) {
+        missionObjective.overtimeAnnounced = true;
+        announce(`${missionObjective.label} overtime. Finish the objective or hold the corridor for six seconds.`);
+      }
+      if (objectiveOvertime < 6) return;
+      missionObjective.complete = true;
+      announce(`${missionObjective.label} window closed. Vesper opened the next corridor.`);
     }
     let index = 0;
     for (let i = LEVELS.length - 1; i >= 0; i -= 1) {

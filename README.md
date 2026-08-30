@@ -48,7 +48,7 @@ Then visit `http://localhost:8080`.
 - Eight streamed city themes with textured facades, roads, bridges, arcologies, fortresses, command spires, and skyline transitions
 - F-16, F/A-18, F-22, and A-10 encounters with multi-hit armor that scales by aircraft, level, and difficulty
 - Formation passes, flanking attacks, multi-missile salvos, crosswinds, tightening altitude corridors, recovery windows, and eight escalating theaters
-- Required Supply Sweep, Air Superiority, and Missile Screen assignments that interrupt the survival loop and gate campaign progress
+- Supply Sweep, Air Superiority, and Missile Screen assignments that interrupt the survival loop, with short fail-forward overtime so progression never stalls
 - Altitude-tracking interceptors and dedicated ceiling-hunter squadrons that punish high-altitude camping, especially on Banana Insanity
 - A voiced picture-in-picture Vesper directive when the three command relays become vulnerable
 - A final assault on three destructible Skyshield command relays that summons the massive missile-firing Skyshield Titan before the fully voiced victory montage
@@ -73,6 +73,7 @@ Then visit `http://localhost:8080`.
 12. The Titan edition added three mission difficulties, level-scaled aircraft armor, a much faster late-game city, and a post-relay command-carrier boss that must fall before humanity can reclaim the sky.
 13. The mission-operations edition rebuilt the short-screen hangar, reset every sortie to a fresh armory, added three required mid-campaign assignments, closed the ceiling exploit with altitude hunters, sharply intensified Banana Insanity, and gave Vesper a voiced final-approach directive.
 14. The uninterrupted-flight edition removed modal level-up prompts, auto-installed rotating field upgrades, and added a published finale test route that jumps straight to the command relays, Titan battle, and closing montage.
+15. The corridor-reliability edition bounded Level 4 objective overtime and strengthened banana aim correction against command relays and the Skyshield Titan, ensuring the final enemy always becomes reachable.
 
 Joseph originally began the broader game experiment in April 2026, when Codex had only recently become available to him. He later revisited Monkey No-Fly Zone as a teaching example for his intern, his CEO's 17-year-old son, to show that coding and AI could produce a real playable game rather than only snippets or mockups. Small changes to the instructions, combined with focused sub-agent reviews and repeated hands-on testing, drove the progression from the early arcade loop to this 3D release.
 
@@ -88,7 +89,7 @@ npm run build
 npm test
 ```
 
-The build produces `game.js`, embeds every referenced image and voice track into `monkey-no-fly-zone-standalone.html`, and verifies 92 required DOM hooks plus bundle integrity. The current release bundles ten modules into 677.5 KB, passes eleven automated tests across the source and standalone release, and ships as a self-contained 25.66 MB HTML game.
+The build produces `game.js`, embeds every referenced image and voice track into `monkey-no-fly-zone-standalone.html`, and verifies 92 required DOM hooks plus bundle integrity. The current release bundles ten modules into 677.8 KB, passes eleven automated tests across the source and standalone release, and ships as a self-contained 25.66 MB HTML game.
 
 ## Project Layout
 

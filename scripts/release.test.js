@@ -40,9 +40,11 @@ test("3D source integrates every gameplay module", () => {
   assert.match(source, /f16: \{[^\n]+hp: 3/, "F-16s should survive multiple standard banana hits");
   assert.match(source, /spec\.hp \* \(1 \+ currentLevel \* 0\.12\) \* difficulty\.enemyHealth/, "aircraft armor should scale by level and mode");
   assert.match(source, /label: "Supply Sweep"/, "the campaign should include a collection assignment");
-  assert.match(source, /label: "Air Superiority"/, "the campaign should include a fighter takedown assignment");
+  assert.match(source, /label: "Air Superiority"[^\n]+target: 4/, "the campaign should include a bounded fighter takedown assignment");
   assert.match(source, /label: "Missile Screen"/, "the campaign should include an interception assignment");
   assert.match(source, /!missionObjective\.complete && elapsed >= nextLevel\.time/, "required assignments should gate sector progression");
+  assert.match(source, /objectiveOvertime < 6/, "an incomplete objective should not create an indefinite gap between levels");
+  assert.match(source, /strategicTarget \? 0\.96/, "command relays and the Titan should receive strong aim correction");
   assert.match(source, /role: "ceiling-hunter"/, "ceiling camping should summon altitude hunters");
   assert.match(source, /relay-preview/, "localhost QA should expose the relay directive without replaying the full campaign");
   assert.match(source, /finale-preview/, "the published game should expose an opt-in finale test flight");
