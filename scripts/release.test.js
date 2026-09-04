@@ -58,6 +58,14 @@ test("3D source integrates every gameplay module", () => {
   assert.match(source, /WINGTAIL_MAX_HEALTH = 100/, "Wingtail should receive a dedicated boss-battle health pool");
   assert.match(source, /phaseIndex/, "the Titan should escalate through multiple combat phases");
   assert.match(source, /armorMultiplier = \[0\.82, 0\.68, 0\.54\]/, "each Titan phase should resist RPG damage");
+  assert.match(source, /antialias: !mobileProfile/, "mobile should disable costly WebGL antialiasing");
+  assert.match(source, /blockCount: mobileProfile \? 12 : 18/, "mobile should stream fewer city blocks");
+  assert.match(source, /mobileProfile \? "low" : "auto"/, "mobile should start with a reduced VFX budget");
+  assert.match(source, /keys\.has\("TouchFire"\)/, "holding the touch fire control should continuously fire");
+  assert.match(source, /keys\.has\("TouchLiftSteer"\)/, "the mobile steering pad should support one-thumb lift");
+  assert.match(source, /shotLimit = mobileMode \? 18/, "mobile should cap active projectiles");
+  assert.match(source, /touch-preview/, "localhost QA should expose the touch controls without device emulation");
+  assert.match(source, /bossBattleStarted && innerHeight <= 500 \? 64 : 16/, "landscape boss targeting should clear the health HUD");
 });
 
 test("late campaign escalates into the Skyshield command-core finale", () => {

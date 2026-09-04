@@ -86,6 +86,7 @@ import * as GameVFX from "./game/vfx.js";
   const weaponCooldown = document.getElementById("weaponCooldown");
   const touchControls = document.getElementById("touchControls");
   const steerZone = document.getElementById("steerZone");
+  const steerMarker = steerZone?.querySelector(".touch-zone__marker");
   const liftButton = document.getElementById("liftButton");
   const statusRegion = document.getElementById("statusRegion");
   const hangarOverlay = document.getElementById("hangarOverlay");
@@ -139,9 +140,11 @@ import * as GameVFX from "./game/vfx.js";
   const PORTAL_DURATION = 4.8;
   const LAUNCH_BUDGET = 120;
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const mobileProfile = innerWidth <= 700 || window.matchMedia("(pointer: coarse)").matches;
   const RELAY_DIRECTIVE_VOICE = "./assets/voices/18-relay-directive.mp3";
   const query = new URLSearchParams(location.search);
   const finalePreview = query.has("finale-preview");
+  const touchPreview = ["localhost", "127.0.0.1"].includes(location.hostname) && query.has("touch-preview");
   const bossPreview = ["localhost", "127.0.0.1"].includes(location.hostname)
     && query.has("boss-preview");
   const relayPreview = ["localhost", "127.0.0.1"].includes(location.hostname)
@@ -271,7 +274,7 @@ import * as GameVFX from "./game/vfx.js";
   let lastTime = performance.now();
   let accumulator = 0;
   let cameraShake = 0;
-  let qualityScale = 1;
+  let qualityScale = mobileProfile ? 0.82 : 1;
   let slowFrames = 0;
   let seed = 0x74ac31;
   let pointerStart = null;
@@ -846,8 +849,9 @@ import * as GameVFX from "./game/vfx.js";
     const portalLight = new THREE.PointLight(0x61f1dd, 18, 80, 1.7);
     portalLight.position.set(0, 2, -42);
     group.add(portalLight);
-    const particlePositions = new Float32Array(520 * 3);
-    for (let index = 0; index < 520; index += 1) {
+    const particleCount = mobileProfile ? 260 : 520;
+    const particlePositions = new Float32Array(particleCount * 3);
+    for (let index = 0; index < particleCount; index += 1) {
       const radius = randomRange(3.8, 10.2);
       const angle = randomRange(0, Math.PI * 2);
       particlePositions[index * 3] = Math.cos(angle) * radius;
@@ -992,8 +996,9 @@ import * as GameVFX from "./game/vfx.js";
   }
 
   function buildAtmosphere() {
-    const positions = new Float32Array(360 * 3);
-    for (let i = 0; i < 360; i += 1) {
+    const starCount = mobileProfile ? 180 : 360;
+    const positions = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount; i += 1) {
       positions[i * 3] = randomRange(-60, 60);
       positions[i * 3 + 1] = randomRange(-1, 28);
       positions[i * 3 + 2] = randomRange(-150, -12);
@@ -1005,7 +1010,8 @@ import * as GameVFX from "./game/vfx.js";
 
     cloudGroup = new THREE.Group();
     const cloudMat = new THREE.MeshBasicMaterial({ color: 0x9aa9aa, transparent: true, opacity: 0.08, depthWrite: false });
-    for (let i = 0; i < 24; i += 1) {
+    const cloudCount = mobileProfile ? 12 : 24;
+    for (let i = 0; i < cloudCount; i += 1) {
       const cloud = new THREE.Mesh(new THREE.SphereGeometry(1, 8, 5), cloudMat);
       cloud.scale.set(randomRange(4, 9), randomRange(0.7, 1.6), randomRange(2, 5));
       cloud.position.set(randomRange(-28, 28), randomRange(4, 15), randomRange(-130, -12));
@@ -1053,7 +1059,7 @@ import * as GameVFX from "./game/vfx.js";
 
   async function init3D() {
     try {
-      renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: "high-performance" });
+      renderer = new THREE.WebGLRenderer({ canvas, antialias: !mobileProfile, alpha: false, powerPreference: "high-performance" });
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure = 1.12;
@@ -1074,15 +1080,15 @@ import * as GameVFX from "./game/vfx.js";
       scene.add(playerLight);
 
       buildAtmosphere();
-      cityStream = createCityStream({ scene, level: 0, seed, speed: LEVELS[0].speed * 0.5 });
+      cityStream = createCityStream({ scene, level: 0, seed, speed: LEVELS[0].speed * 0.5, blockCount: mobileProfile ? 12 : 18 });
       applyCityEnvironment(cityStream.getEnvironment());
-      vfxManager = GameVFX.create({ scene, camera, mobile: innerWidth <= 700, reducedMotion, quality: "auto", seed });
+      vfxManager = GameVFX.create({ scene, camera, mobile: mobileProfile, reducedMotion, quality: mobileProfile ? "low" : "auto", seed });
       playerController = await PlayerVisual.create({
         scene,
         camera,
         renderer,
         assetUrl: "./assets/hero-monkey-chase-v2.png",
-        mobile: innerWidth <= 700,
+        mobile: mobileProfile,
         reducedMotion,
       });
       PlayerVisual.applyLoadout(playerController, profile.equipped);
@@ -1123,9 +1129,9 @@ import * as GameVFX from "./game/vfx.js";
     if (!renderer || !camera) return;
     const width = canvas.clientWidth || innerWidth;
     const height = canvas.clientHeight || innerHeight;
-    const mobile = width <= 700;
+    const mobile = width <= 700 || ((mobileProfile || touchPreview) && height <= 500);
     mobileMode = mobile;
-    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, mobile ? 1.5 : 2) * qualityScale);
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, mobile ? 1.2 : 2) * qualityScale);
     renderer.setSize(width, height, false);
     camera.aspect = width / Math.max(1, height);
     camera.fov = mobile && height > width ? 65 : 55;
@@ -1133,8 +1139,9 @@ import * as GameVFX from "./game/vfx.js";
     PlayerVisual.setMobile(playerController, mobile);
     cinematic?.resize();
     victory?.resize();
-    document.body.classList.toggle("touch-controls-ready", mobile && matchMedia("(pointer: coarse)").matches);
-    touchControls?.setAttribute("aria-hidden", String(!(mobile && matchMedia("(pointer: coarse)").matches)));
+    const touchReady = mobile && (touchPreview || matchMedia("(pointer: coarse)").matches);
+    document.body.classList.toggle("touch-controls-ready", touchReady);
+    touchControls?.setAttribute("aria-hidden", String(!touchReady));
   }
 
   function setOverlayVisible(visible) {
@@ -1265,6 +1272,7 @@ import * as GameVFX from "./game/vfx.js";
   }
 
   function reset() {
+    keys.clear();
     jets.splice(0).forEach((item) => removeView(item.view));
     missiles.splice(0).forEach((item) => removeView(item.view));
     shots.splice(0).forEach((item) => removeView(item.view));
@@ -1500,7 +1508,8 @@ import * as GameVFX from "./game/vfx.js";
       shotDirection.y += Math.abs(offset) * spread * 0.16;
       shotDirection.normalize();
       const view = rpgShot ? createRpgShotView() : createShotView(weaponId, rageShot);
-      if (shots.length >= MAX_ACTIVE_SHOTS) {
+      const shotLimit = mobileMode ? 18 : MAX_ACTIVE_SHOTS;
+      if (shots.length >= shotLimit) {
         const oldest = shots.shift();
         removeView(oldest?.view);
       }
@@ -2134,7 +2143,7 @@ import * as GameVFX from "./game/vfx.js";
 
   function updateMonkey(dt) {
     const level = LEVELS[currentLevel];
-    const held = keys.has("Space") || keys.has("KeyW") || keys.has("ArrowUp") || keys.has("TouchLift");
+    const held = keys.has("Space") || keys.has("KeyW") || keys.has("ArrowUp") || keys.has("TouchLift") || keys.has("TouchLiftSteer");
     if (held) monkey.vy += 5.8 * runStats.lift * dt;
     monkey.vy = clamp(monkey.vy - 3.1 * dt, -3.6, 6.4 * runStats.lift);
     if (level.crosswind) {
@@ -2546,7 +2555,8 @@ import * as GameVFX from "./game/vfx.js";
     }
     tempV.set(target.x, target.y, target.z).project(camera);
     const left = clamp((tempV.x * 0.5 + 0.5) * 100, 10, 90);
-    const top = clamp((-tempV.y * 0.5 + 0.5) * 100, 16, 84);
+    const minimumTop = bossBattleStarted && innerHeight <= 500 ? 64 : 16;
+    const top = clamp((-tempV.y * 0.5 + 0.5) * 100, minimumTop, 84);
     targetingHud?.classList.add("is-locked");
     if (targetingHud) {
       targetingHud.style.left = `${left}%`;
@@ -2618,6 +2628,7 @@ import * as GameVFX from "./game/vfx.js";
     distance += dt * (1.25 + flightSpeed() * 0.032) * runStats.speed;
     shotCooldown = Math.max(0, shotCooldown - dt);
     updateRage(dt);
+    if (keys.has("TouchFire") && shotCooldown <= 0) fire();
     updateWeaponCooldown();
     chainTimer -= dt;
     if (chainTimer <= 0 && chain > 1) {
@@ -2665,6 +2676,8 @@ import * as GameVFX from "./game/vfx.js";
     shootButton.disabled = true;
     if (liftButton) liftButton.disabled = true;
     keys.delete("TouchLift");
+    keys.delete("TouchLiftSteer");
+    keys.delete("TouchFire");
     combatDirector?.stop({ clearSchedule: true });
     missileWarning.hidden = true;
     cameraShake = reducedMotion ? 0.08 : 0.28;
@@ -2705,6 +2718,8 @@ import * as GameVFX from "./game/vfx.js";
     shootButton.disabled = true;
     if (liftButton) liftButton.disabled = true;
     keys.delete("TouchLift");
+    keys.delete("TouchLiftSteer");
+    keys.delete("TouchFire");
     audio.setPaused?.(true);
     resumeButton.focus();
   }
@@ -2750,11 +2765,17 @@ import * as GameVFX from "./game/vfx.js";
     if (state !== "playing" || event.pointerId !== steerPointerId) return;
     const rect = steerZone.getBoundingClientRect();
     const normalized = clamp((event.clientX - rect.left) / Math.max(1, rect.width), 0, 1);
+    const vertical = clamp((event.clientY - rect.top) / Math.max(1, rect.height), 0, 1);
     monkey.lane = clamp(Math.round(normalized * (LANES.length - 1)), 0, LANES.length - 1);
+    steerZone.style.setProperty("--steer-x", `${Math.round(normalized * 100)}%`);
+    steerZone.style.setProperty("--steer-y", `${Math.round(vertical * 100)}%`);
+    if (vertical < 0.58) keys.add("TouchLiftSteer");
+    else keys.delete("TouchLiftSteer");
+    steerMarker?.classList.add("is-active");
   }
 
   function beginSteering(event) {
-    if (state !== "playing") return;
+    if (state !== "playing" || steerPointerId !== null) return;
     event.preventDefault();
     steerPointerId = event.pointerId;
     steerZone.setPointerCapture?.(event.pointerId);
@@ -2764,6 +2785,10 @@ import * as GameVFX from "./game/vfx.js";
   function endSteering(event) {
     if (event.pointerId !== steerPointerId) return;
     steerPointerId = null;
+    keys.delete("TouchLiftSteer");
+    steerZone.style.setProperty("--steer-x", "50%");
+    steerZone.style.setProperty("--steer-y", "78%");
+    steerMarker?.classList.remove("is-active");
   }
 
   function beginTouchLift(event) {
@@ -2777,6 +2802,21 @@ import * as GameVFX from "./game/vfx.js";
   function endTouchLift(event) {
     event.preventDefault();
     keys.delete("TouchLift");
+  }
+
+  function beginTouchFire(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    fire();
+    if (event.pointerType !== "mouse") {
+      shootButton.setPointerCapture?.(event.pointerId);
+      keys.add("TouchFire");
+    }
+  }
+
+  function endTouchFire(event) {
+    event.preventDefault();
+    keys.delete("TouchFire");
   }
 
   startButton.addEventListener("click", () => {
@@ -2826,7 +2866,10 @@ import * as GameVFX from "./game/vfx.js";
     missionVoice.muted = Boolean(audio.isMuted?.());
     updateMuteControl();
   });
-  shootButton.addEventListener("pointerdown", (event) => { event.preventDefault(); event.stopPropagation(); fire(); });
+  shootButton.addEventListener("pointerdown", beginTouchFire);
+  shootButton.addEventListener("pointerup", endTouchFire);
+  shootButton.addEventListener("pointercancel", endTouchFire);
+  shootButton.addEventListener("lostpointercapture", endTouchFire);
   rageHud?.addEventListener("click", activateRage);
   rageActionButton?.addEventListener("click", activateRage);
   steerZone?.addEventListener("pointerdown", beginSteering);
@@ -2836,6 +2879,7 @@ import * as GameVFX from "./game/vfx.js";
   liftButton?.addEventListener("pointerdown", beginTouchLift);
   liftButton?.addEventListener("pointerup", endTouchLift);
   liftButton?.addEventListener("pointercancel", endTouchLift);
+  liftButton?.addEventListener("lostpointercapture", endTouchLift);
   canvas.addEventListener("pointerdown", handlePointerDown);
   canvas.addEventListener("pointerup", handlePointerUp);
   canvas.addEventListener("pointercancel", () => { pointerStart = null; });
@@ -2846,6 +2890,7 @@ import * as GameVFX from "./game/vfx.js";
   });
   canvas.addEventListener("webglcontextrestored", () => location.reload());
   window.addEventListener("resize", resize);
+  window.visualViewport?.addEventListener("resize", resize);
   window.addEventListener("blur", () => {
     if (state === "playing") pauseGame();
     cinematic?.setPaused(true);

@@ -814,6 +814,86 @@ body.boss-battle-active .missile-warning {
   display: none;
 }
 
+body.touch-controls-ready .touch-controls {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  display: block;
+  pointer-events: none;
+}
+
+body.touch-controls-ready .touch-zone {
+  position: absolute;
+  pointer-events: auto;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.touch-zone--steer {
+  --steer-x: 50%;
+  --steer-y: 78%;
+  bottom: var(--safe-bottom);
+  left: var(--safe-left);
+  width: min(44vw, 270px);
+  height: min(45vh, 220px);
+}
+
+.touch-zone__marker {
+  position: absolute;
+  top: clamp(30px, var(--steer-y), calc(100% - 30px));
+  left: clamp(30px, var(--steer-x), calc(100% - 30px));
+  width: 60px;
+  height: 60px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 50%;
+  background: rgba(5, 12, 15, 0.22);
+  transform: translate(-50%, -50%);
+}
+
+.touch-zone__marker::before,
+.touch-zone__marker::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  background: rgba(255, 255, 255, 0.36);
+  content: "";
+  transform: translate(-50%, -50%);
+}
+
+.touch-zone__marker::before {
+  width: 24px;
+  height: 1px;
+}
+
+.touch-zone__marker::after {
+  width: 1px;
+  height: 24px;
+}
+
+.touch-zone--lift {
+  right: max(82px, calc(env(safe-area-inset-right) + 74px));
+  bottom: var(--safe-bottom);
+  display: grid;
+  width: 58px;
+  min-width: 58px;
+  height: 58px;
+  min-height: 58px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid rgba(98, 234, 208, 0.58);
+  border-radius: 50%;
+  background: rgba(5, 17, 18, 0.82);
+  color: var(--signal);
+}
+
+.touch-zone__lift-icon {
+  width: 0;
+  height: 0;
+  border-right: 9px solid transparent;
+  border-bottom: 14px solid currentColor;
+  border-left: 9px solid transparent;
+}
+
 .overlay {
   position: absolute;
   z-index: 5;
@@ -2085,11 +2165,11 @@ button:focus-visible {
 
   .hud__center {
     position: absolute;
-    top: 54px;
+    top: 50px;
     left: 50%;
     width: min(286px, calc(100vw - 24px));
-    min-height: 42px;
-    padding: 8px 12px;
+    min-height: 36px;
+    padding: 6px 10px;
     transform: translateX(-50%);
   }
 
@@ -2099,8 +2179,8 @@ button:focus-visible {
     justify-content: flex-start;
     gap: 12px;
     min-width: 0;
-    padding: 8px 10px;
-    font-size: 11px;
+    padding: 6px 8px;
+    font-size: 9px;
   }
 
   .hud__actions {
@@ -2119,10 +2199,10 @@ button:focus-visible {
     position: fixed;
     right: max(16px, calc(env(safe-area-inset-right) + 8px));
     bottom: max(18px, calc(env(safe-area-inset-bottom) + 8px));
-    width: 64px;
-    min-width: 64px;
-    height: 64px;
-    min-height: 64px;
+    width: 74px;
+    min-width: 74px;
+    height: 74px;
+    min-height: 74px;
     border-width: 2px;
     background: rgba(20, 24, 18, 0.88);
     font-size: 32px;
@@ -2137,7 +2217,7 @@ button:focus-visible {
   }
 
   .hud__stats strong {
-    font-size: 20px;
+    font-size: 17px;
   }
 
   .hud__stats small {
@@ -2145,10 +2225,10 @@ button:focus-visible {
   }
 
   .skill-hud {
-    top: 103px;
+    top: 92px;
     width: calc(100vw - 20px);
-    min-height: 34px;
-    padding: 6px 10px;
+    min-height: 29px;
+    padding: 4px 8px;
     justify-content: space-between;
     gap: 4px;
     font-size: 8px;
@@ -2160,7 +2240,9 @@ button:focus-visible {
   }
 
   .rage-hud {
-    top: 143px;
+    top: 127px;
+    min-height: 30px;
+    padding: 5px 8px;
     width: min(286px, calc(100vw - 24px));
   }
 
@@ -2173,12 +2255,12 @@ button:focus-visible {
   }
 
   .objective-hud {
-    top: 185px;
+    top: 163px;
     width: min(286px, calc(100vw - 24px));
   }
 
   .boss-battle-hud {
-    top: 181px;
+    top: 161px;
     width: min(360px, calc(100vw - 20px));
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 7px;
@@ -2207,28 +2289,28 @@ button:focus-visible {
   }
 
   body.boss-battle-active .missile-warning {
-    top: max(266px, calc(env(safe-area-inset-top) + 254px));
+    top: max(245px, calc(env(safe-area-inset-top) + 233px));
   }
 
   .vesper-comms {
-    bottom: max(92px, calc(env(safe-area-inset-bottom) + 82px));
+    bottom: max(158px, calc(env(safe-area-inset-bottom) + 148px));
     left: max(12px, env(safe-area-inset-left));
-    width: min(350px, calc(100vw - 24px));
-    min-height: 82px;
-    grid-template-columns: 68px minmax(0, 1fr);
+    width: min(230px, calc(100vw - 148px));
+    min-height: 54px;
+    grid-template-columns: minmax(0, 1fr);
+    opacity: 0.9;
   }
 
   .vesper-comms img {
-    width: 68px;
-    min-height: 82px;
+    display: none;
   }
 
   .vesper-comms > span {
-    padding: 8px 10px;
+    padding: 7px 9px;
   }
 
   .vesper-comms p {
-    font-size: 10px;
+    font-size: 9px;
   }
 
   .victory-copy {
@@ -2246,7 +2328,7 @@ button:focus-visible {
   }
 
   .missile-warning {
-    top: max(225px, calc(env(safe-area-inset-top) + 213px));
+    top: max(202px, calc(env(safe-area-inset-top) + 190px));
   }
 
   .targeting-hud {
@@ -2270,21 +2352,34 @@ button:focus-visible {
   }
 
   .touch-zone--steer {
+    --steer-x: 50%;
+    --steer-y: 78%;
     bottom: max(12px, env(safe-area-inset-bottom));
     left: max(12px, env(safe-area-inset-left));
-    width: min(46vw, 230px);
-    height: min(33vh, 220px);
+    width: min(54vw, 270px);
+    height: min(38vh, 260px);
+    border-bottom: 1px solid rgba(98, 234, 208, 0.13);
+    border-left: 1px solid rgba(98, 234, 208, 0.08);
   }
 
   .touch-zone__marker {
     position: absolute;
-    bottom: 22px;
-    left: 22px;
-    width: 54px;
-    height: 54px;
+    top: clamp(30px, var(--steer-y), calc(100% - 30px));
+    left: clamp(30px, var(--steer-x), calc(100% - 30px));
+    width: 60px;
+    height: 60px;
     border: 1px solid rgba(255, 255, 255, 0.24);
     border-radius: 50%;
     background: rgba(5, 12, 15, 0.22);
+    transform: translate(-50%, -50%);
+    transition: width 100ms ease, height 100ms ease, border-color 100ms ease, background-color 100ms ease;
+  }
+
+  .touch-zone__marker.is-active {
+    width: 66px;
+    height: 66px;
+    border-color: rgba(98, 234, 208, 0.76);
+    background: rgba(5, 27, 28, 0.62);
   }
 
   .touch-zone__marker::before,
@@ -2309,18 +2404,34 @@ button:focus-visible {
 
   .touch-zone--lift {
     right: max(16px, calc(env(safe-area-inset-right) + 8px));
-    bottom: max(94px, calc(env(safe-area-inset-bottom) + 84px));
+    bottom: max(108px, calc(env(safe-area-inset-bottom) + 98px));
     display: grid;
-    width: 64px;
-    min-width: 64px;
-    height: 64px;
-    min-height: 64px;
+    width: 72px;
+    min-width: 72px;
+    height: 72px;
+    min-height: 72px;
     padding: 0;
     place-items: center;
     border: 1px solid rgba(98, 234, 208, 0.58);
     border-radius: 50%;
     background: rgba(5, 17, 18, 0.82);
     color: var(--signal);
+  }
+
+  .touch-zone--lift:active,
+  .hud__actions .fire-button:active {
+    filter: brightness(1.35);
+    transform: scale(0.96);
+  }
+
+  .hud__identity,
+  .hud__center,
+  .hud__stats,
+  .skill-hud,
+  .rage-hud,
+  .objective-hud,
+  .boss-battle-hud {
+    backdrop-filter: none;
   }
 
   .touch-zone__lift-icon {
@@ -2508,10 +2619,12 @@ button:focus-visible {
     min-height: 48px;
     padding: 7px 10px;
     transform: none;
+    grid-row: 1;
   }
 
   .hud__stats {
     grid-column: 1;
+    grid-row: 1;
     max-width: 238px;
     min-height: 48px;
     padding: 6px 9px;
@@ -2532,6 +2645,7 @@ button:focus-visible {
 
   .hud__actions {
     grid-column: 3;
+    grid-row: 1;
   }
 
   .hud__actions .fire-button {

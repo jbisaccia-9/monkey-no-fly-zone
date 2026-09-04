@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
     <meta name="theme-color" content="#071014">
     <title>Monkey See, Monkey Pew</title>
     <meta name="description" content="A flying monkey. A stolen terror fleet. Humanity's last wildly unqualified hope.">
@@ -51,8 +51,8 @@
             class="icon-button fire-button"
             id="shootButton"
             type="button"
-            aria-label="Throw banana"
-            title="Throw banana (Enter)"
+            aria-label="Fire banana weapon"
+            title="Fire banana weapon (hold on touch or press Enter)"
             disabled
           >
             <span class="fire-button__reticle" aria-hidden="true"></span>
@@ -140,7 +140,7 @@
       <section class="touch-controls" id="touchControls" aria-label="Touch flight controls" aria-hidden="true">
         <div class="touch-zone touch-zone--steer" id="steerZone" data-control="steer">
           <span class="touch-zone__marker" aria-hidden="true"></span>
-          <span class="sr-only">Drag to steer</span>
+          <span class="sr-only">Drag horizontally to steer and upward to lift</span>
         </div>
         <button class="touch-zone touch-zone--lift" id="liftButton" type="button" data-control="lift" aria-label="Lift" disabled>
           <span class="touch-zone__lift-icon" aria-hidden="true"></span>
